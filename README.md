@@ -2,16 +2,22 @@
 
 MCP Server that can connect to a Kubernetes cluster and manage it.
 
-## How to run
+## How to run tests locally
 
 ```bash
 git clone https://github.com/Flux159/mcp-server-kubernetes.git
 cd mcp-server-kubernetes
 npm install
-npm start
+npm test
 ```
 
 ## Usage with Claude Desktop
+
+Clone the repo, install the dependencies, and build the dist folder:
+
+```
+npm run build
+```
 
 To use this server with the Claude Desktop app, add the following configuration to the "mcpServers" section of your `claude_desktop_config.json`:
 
@@ -19,8 +25,8 @@ To use this server with the Claude Desktop app, add the following configuration 
 {
   "mcpServers": {
     "kubernetes": {
-      "command": "npx",
-      "args": ["-y", "mcp-server-kubernetes"]
+      "command": "node",
+      "args": ["/your/path/to/mcp-server-kubernetes/dist/index.js"]
     }
   }
 }
@@ -40,10 +46,11 @@ You can verify your connection by asking Claude to list your pods or create a te
 - [x] List all pods
 - [x] List all services
 - [x] List all deployments
-- [] List all nodes
-- [] List all namespaces
+- [x] Create a pod
+- [x] Delete a pod
+- [x] List all namespaces
 - [] Port forward to a pod
-- [] Get logs from a pod
+- [] Get logs from a pod for debugging
 - [] Choose namespace for next commands (memory)
 - [] Support Helm for installing charts
 

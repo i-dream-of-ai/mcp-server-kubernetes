@@ -1,44 +1,22 @@
 #!/usr/bin/env node
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
+  ErrorCode,
+  McpError,
+} from "@modelcontextprotocol/sdk/types.js";
 import * as k8s from "@kubernetes/client-node";
 import * as child_process from "child_process";
-
 import {
-  GetContextsSchema,
-  SwitchContextSchema,
-  ListResourcesSchema,
-  CreatePodSchema,
-  CreateDeploymentSchema,
-  PortForwardSchema,
-  StopPortForwardSchema,
-  CleanupSchema,
-  DeletePodSchema,
+  ContainerTemplate,
+  ResourceTracker,
+  PortForwardTracker,
+  WatchTracker,
 } from "./types.js";
-
-// Resource tracking
-interface ResourceTracker {
-  kind: string;
-  name: string;
-  namespace: string;
-  createdAt: Date;
-}
-
-interface PortForwardTracker {
-  id: string;
-  server: { stop: () => Promise<void> };
-  resourceType: string;
-  name: string;
-  namespace: string;
-  ports: { local: number; remote: number }[];
-}
-
-interface WatchTracker {
-  id: string;
-  abort: AbortController;
-  resourceType: string;
-  namespace: string;
-}
 
 class KubernetesManager {
   private resources: ResourceTracker[] = [];
@@ -54,21 +32,21 @@ class KubernetesManager {
     this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
     this.k8sAppsApi = this.kc.makeApiClient(k8s.AppsV1Api);
 
-    process.on("SIGINT", () => this.cleanup());
-    process.on("SIGTERM", () => this.cleanup());
+    // process.on("SIGINT", () => this.cleanup());
+    // process.on("SIGTERM", () => this.cleanup());
   }
 
   async cleanup() {
     console.log("Cleaning up resources...");
 
     // Stop port forwards
-    for (const pf of this.portForwards) {
-      try {
-        await pf.server.stop();
-      } catch (error) {
-        console.error(`Failed to close port-forward ${pf.id}:`, error);
-      }
-    }
+    // for (const pf of this.portForwards) {
+    //   try {
+    //     await pf.server.stop();
+    //   } catch (error) {
+    //     console.error(`Failed to close port-forward ${pf.id}:`, error);
+    //   }
+    // }
 
     // Stop watches
     for (const watch of this.watches) {
@@ -250,259 +228,474 @@ const server = new Server(
     version: "0.1.0",
   },
   {
-    capabilities: {},
+    capabilities: {
+      resources: {},
+      tools: {},
+    },
   }
 );
 
-server.setRequestHandler<typeof GetContextsSchema>(
-  GetContextsSchema,
-  async (request) => {
-    const kc = k8sManager.getKubeConfig();
-    const contexts = kc.getContexts();
-    const currentContext = kc.getCurrentContext();
-
-    return {
-      contexts: contexts.map((ctx) => ({
-        name: ctx.name,
-        active: ctx.name === currentContext,
-      })),
-    };
-  }
-);
-
-server.setRequestHandler(SwitchContextSchema, async (request) => {
-  try {
-    const kc = k8sManager.getKubeConfig();
-    kc.setCurrentContext(request.params.context);
-    return { success: true };
-  } catch (error) {
-    throw new Error(`Failed to switch context: ${error}`);
-  }
+// Tools handlers
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: "list_pods",
+        description: "List pods in a namespace",
+        inputSchema: {
+          type: "object",
+          properties: {
+            namespace: { type: "string", default: "default" },
+          },
+          required: ["namespace"],
+        },
+      },
+      {
+        name: "list_deployments",
+        description: "List deployments in a namespace",
+        inputSchema: {
+          type: "object",
+          properties: {
+            namespace: { type: "string", default: "default" },
+          },
+          required: ["namespace"],
+        },
+      },
+      {
+        name: "list_services",
+        description: "List services in a namespace",
+        inputSchema: {
+          type: "object",
+          properties: {
+            namespace: { type: "string", default: "default" },
+          },
+          required: ["namespace"],
+        },
+      },
+      {
+        name: "list_namespaces",
+        description: "List all namespaces",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "create_pod",
+        description: "Create a new Kubernetes pod",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            namespace: { type: "string" },
+            template: {
+              type: "string",
+              enum: ["ubuntu", "nginx", "busybox", "alpine"],
+            },
+            command: {
+              type: "array",
+              items: { type: "string" },
+              optional: true,
+            },
+          },
+          required: ["name", "namespace", "template"],
+        },
+      },
+      {
+        name: "create_deployment",
+        description: "Create a new Kubernetes deployment",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            namespace: { type: "string" },
+            template: {
+              type: "string",
+              enum: ["ubuntu", "nginx", "busybox", "alpine"],
+            },
+            replicas: { type: "number", default: 1 },
+            ports: {
+              type: "array",
+              items: { type: "number" },
+              optional: true,
+            },
+          },
+          required: ["name", "namespace", "template"],
+        },
+      },
+      {
+        name: "delete_pod",
+        description: "Delete a Kubernetes pod",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            namespace: { type: "string" },
+            ignoreNotFound: { type: "boolean", default: false },
+          },
+          required: ["name", "namespace"],
+        },
+      },
+      {
+        name: "cleanup",
+        description: "Cleanup all managed resources",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+    ],
+  };
 });
-
-server.setRequestHandler(ListResourcesSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
-    const { resourceType, namespace } = request.params;
-    switch (resourceType) {
-      case "pod": {
+    const { name } = request.params;
+    const input = request.params.arguments;
+
+    switch (name) {
+      case "list_pods": {
+        const listPodsInput = input as { namespace?: string };
+        const namespace = listPodsInput.namespace || "default";
         const { body } = await k8sManager
           .getCoreApi()
-          .listNamespacedPod(namespace ?? "default");
-        return { items: body.items };
+          .listNamespacedPod(namespace);
+
+        const pods = body.items.map((pod) => ({
+          name: pod.metadata?.name || "",
+          namespace: pod.metadata?.namespace || "",
+          status: pod.status?.phase,
+          createdAt: pod.metadata?.creationTimestamp,
+        }));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ pods }, null, 2),
+            },
+          ],
+        };
       }
-      case "deployment": {
+
+      case "list_deployments": {
+        const listDeploymentsInput = input as { namespace?: string };
+        const namespace = listDeploymentsInput.namespace || "default";
         const { body } = await k8sManager
           .getAppsApi()
-          .listNamespacedDeployment(namespace ?? "default");
-        return { items: body.items };
+          .listNamespacedDeployment(namespace);
+
+        const deployments = body.items.map((deployment) => ({
+          name: deployment.metadata?.name || "",
+          namespace: deployment.metadata?.namespace || "",
+          replicas: deployment.spec?.replicas || 0,
+          availableReplicas: deployment.status?.availableReplicas || 0,
+          createdAt: deployment.metadata?.creationTimestamp,
+        }));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ deployments }, null, 2),
+            },
+          ],
+        };
       }
-      case "service": {
+
+      case "list_services": {
+        const listServicesInput = input as { namespace?: string };
+        const namespace = listServicesInput.namespace || "default";
         const { body } = await k8sManager
           .getCoreApi()
-          .listNamespacedService(namespace ?? "default");
-        return { items: body.items };
+          .listNamespacedService(namespace);
+
+        const services = body.items.map((service) => ({
+          name: service.metadata?.name || "",
+          namespace: service.metadata?.namespace || "",
+          type: service.spec?.type,
+          clusterIP: service.spec?.clusterIP,
+          ports: service.spec?.ports || [],
+          createdAt: service.metadata?.creationTimestamp,
+        }));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ services }, null, 2),
+            },
+          ],
+        };
       }
-      case "namespace": {
+
+      case "list_namespaces": {
         const { body } = await k8sManager.getCoreApi().listNamespace();
-        return { items: body.items };
+
+        const namespaces = body.items.map((ns) => ({
+          name: ns.metadata?.name || "",
+          status: ns.status?.phase || "",
+          createdAt: ns.metadata?.creationTimestamp,
+        }));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ namespaces }, null, 2),
+            },
+          ],
+        };
       }
-      default:
-        throw new Error(`Unsupported resource type: ${resourceType}`);
-    }
-  } catch (error) {
-    throw new Error(`Failed to list resources: ${error}`);
-  }
-});
 
-server.setRequestHandler(CreatePodSchema, async (request) => {
-  console.log("Creating pod inside server...");
-  try {
-    const { name, namespace, template, command } = request.params;
-    const templateConfig = containerTemplates[template];
-    const pod: k8s.V1Pod = {
-      apiVersion: "v1",
-      kind: "Pod",
-      metadata: {
-        name,
-        namespace,
-        labels: {
-          "mcp-managed": "true",
-          app: name,
-        },
-      },
-      spec: {
-        containers: [
-          {
-            ...templateConfig,
-            ...(command && { command }),
-          },
-        ],
-      },
-    };
-
-    const { body } = await k8sManager
-      .getCoreApi()
-      .createNamespacedPod(namespace, pod);
-    k8sManager.trackResource("Pod", name, namespace);
-    return { podName: body.metadata!.name! };
-  } catch (error) {
-    throw new Error(`Failed to create pod: ${error}`);
-  }
-});
-
-server.setRequestHandler(CreateDeploymentSchema, async (request) => {
-  try {
-    const { name, namespace, template, replicas, ports } = request.params;
-    const templateConfig = containerTemplates[template];
-    const deployment: k8s.V1Deployment = {
-      apiVersion: "apps/v1",
-      kind: "Deployment",
-      metadata: {
-        name,
-        namespace,
-        labels: {
-          "mcp-managed": "true",
-          app: name,
-        },
-      },
-      spec: {
-        replicas,
-        selector: {
-          matchLabels: {
-            app: name,
-          },
-        },
-        template: {
+      case "create_pod": {
+        console.error("calling create_pod");
+        console.error(input);
+        console.error(request);
+        const createPodInput = input as {
+          name: string;
+          namespace: string;
+          template: string;
+          command?: string[];
+        };
+        const templateConfig = containerTemplates[createPodInput.template];
+        const pod: k8s.V1Pod = {
+          apiVersion: "v1",
+          kind: "Pod",
           metadata: {
+            name: createPodInput.name,
+            namespace: createPodInput.namespace,
             labels: {
-              app: name,
               "mcp-managed": "true",
+              app: createPodInput.name,
             },
           },
           spec: {
             containers: [
               {
                 ...templateConfig,
-                ...(ports && {
-                  ports: ports.map((port) => ({
-                    containerPort: port,
-                  })),
+                ...(createPodInput.command && {
+                  command: createPodInput.command,
                 }),
               },
             ],
           },
-        },
-      },
-    };
+        };
 
-    const { body } = await k8sManager
-      .getAppsApi()
-      .createNamespacedDeployment(namespace, deployment);
-    k8sManager.trackResource("Deployment", name, namespace);
-    return { deploymentName: body.metadata!.name! };
+        const { body } = await k8sManager
+          .getCoreApi()
+          .createNamespacedPod(createPodInput.namespace, pod);
+        k8sManager.trackResource(
+          "Pod",
+          createPodInput.name,
+          createPodInput.namespace
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  podName: body.metadata!.name!,
+                  status: "created",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      case "delete_pod": {
+        const deletePodInput = input as {
+          name: string;
+          namespace: string;
+          ignoreNotFound?: boolean;
+        };
+        try {
+          await k8sManager
+            .getCoreApi()
+            .deleteNamespacedPod(deletePodInput.name, deletePodInput.namespace);
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    status: "deleted",
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (error: any) {
+          if (
+            deletePodInput.ignoreNotFound &&
+            error.response?.statusCode === 404
+          ) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(
+                    {
+                      success: true,
+                      status: "not_found",
+                    },
+                    null,
+                    2
+                  ),
+                },
+              ],
+            };
+          }
+          throw error;
+        }
+      }
+
+      case "cleanup": {
+        await k8sManager.cleanup();
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: true,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      default:
+        throw new McpError(ErrorCode.InvalidRequest, `Unknown tool: ${name}`);
+    }
   } catch (error) {
-    throw new Error(`Failed to create deployment: ${error}`);
+    if (error instanceof McpError) throw error;
+    throw new McpError(
+      ErrorCode.InternalError,
+      `Tool execution failed: ${error}`
+    );
   }
 });
 
-// TODO: Port forwarding is not working properly just yet... unsure why
-// server.setRequestHandler(PortForwardSchema, async (request) => {
-//   console.error("Starting port forward...");
-//   const { resourceType, name, namespace, ports } = request.params;
-//   const id = `${resourceType}-${namespace}-${name}-${Date.now()}`;
+// Resources handlers
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [
+      {
+        uri: "k8s://default/pods",
+        name: "Kubernetes Pods",
+        mimeType: "application/json",
+        description: "List of pods in the default namespace",
+      },
+      {
+        uri: "k8s://default/deployments",
+        name: "Kubernetes Deployments",
+        mimeType: "application/json",
+        description: "List of deployments in the default namespace",
+      },
+      {
+        uri: "k8s://default/services",
+        name: "Kubernetes Services",
+        mimeType: "application/json",
+        description: "List of services in the default namespace",
+      },
+      {
+        uri: "k8s://namespaces",
+        name: "Kubernetes Namespaces",
+        mimeType: "application/json",
+        description: "List of all namespaces",
+      },
+    ],
+  };
+});
 
-//   // Start port-forward using kubectl for each port
-//   const processes = ports.map(port => {
-//     const child = child_process.spawn('kubectl', [
-//       'port-forward',
-//       '-n', namespace,
-//       `${resourceType}/${name}`,
-//       `${port.local}:${port.remote}`
-//     ], {
-//       stdio: ['ignore', 'pipe', 'pipe'],
-//       detached: true // Run in background
-//     });
-
-//     // Log any errors
-//     child.stderr.on('data', (data) => {
-//       console.error(`Port forward ${id} stderr:`, data.toString());
-//     });
-
-//     return child;
-//   });
-
-//   // Track the port forwards
-//   k8sManager.trackPortForward({
-//     id,
-//     server: {
-//       stop: async () => {
-//         // Kill all port-forward processes
-//         processes.forEach(proc => {
-//           if (proc.pid) {
-//             try {
-//               process.kill(-proc.pid); // Kill process group
-//             } catch (error) {
-//               console.error(`Failed to kill port-forward process:`, error);
-//             }
-//           }
-//         });
-//       }
-//     },
-//     resourceType,
-//     name,
-//     namespace,
-//     ports,
-//   });
-
-//   console.log(`Port forward ${id} started`);
-//   return { id, success: true };
-// });
-
-// server.setRequestHandler(StopPortForwardSchema, async (request) => {
-//   try {
-//     const { id } = request.params;
-//     const pf = k8sManager.getPortForward(id);
-//     if (pf) {
-//       await pf.server.stop();
-//       k8sManager.removePortForward(id);
-//       return { success: true };
-//     }
-//     throw new Error(`Port forward ${id} not found`);
-//   } catch (error) {
-//     throw new Error(`Failed to stop port forward: ${error}`);
-//   }
-// });
-
-server.setRequestHandler(DeletePodSchema, async (request) => {
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   try {
-    const { name, namespace, ignoreNotFound = false } = request.params;
+    const uri = request.params.uri;
+    const parts = uri.replace("k8s://", "").split("/");
 
-    try {
-      await k8sManager.getCoreApi().deleteNamespacedPod(name, namespace);
-    } catch (error: any) {
-      // If we're ignoring not found errors and this is a 404, succeed
-      if (ignoreNotFound && error.response?.statusCode === 404) {
-        return { success: true };
-      }
-      throw error;
+    if (parts[0] === "namespaces" && parts.length === 1) {
+      const { body } = await k8sManager.getCoreApi().listNamespace();
+      return {
+        contents: [
+          {
+            uri: request.params.uri,
+            mimeType: "application/json",
+            text: JSON.stringify(body.items, null, 2),
+          },
+        ],
+      };
     }
 
-    return { success: true };
+    const [namespace, resourceType] = parts;
+
+    switch (resourceType) {
+      case "pods": {
+        const { body } = await k8sManager
+          .getCoreApi()
+          .listNamespacedPod(namespace);
+        return {
+          contents: [
+            {
+              uri: request.params.uri,
+              mimeType: "application/json",
+              text: JSON.stringify(body.items, null, 2),
+            },
+          ],
+        };
+      }
+      case "deployments": {
+        const { body } = await k8sManager
+          .getAppsApi()
+          .listNamespacedDeployment(namespace);
+        return {
+          contents: [
+            {
+              uri: request.params.uri,
+              mimeType: "application/json",
+              text: JSON.stringify(body.items, null, 2),
+            },
+          ],
+        };
+      }
+      case "services": {
+        const { body } = await k8sManager
+          .getCoreApi()
+          .listNamespacedService(namespace);
+        return {
+          contents: [
+            {
+              uri: request.params.uri,
+              mimeType: "application/json",
+              text: JSON.stringify(body.items, null, 2),
+            },
+          ],
+        };
+      }
+      default:
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Unsupported resource type: ${resourceType}`
+        );
+    }
   } catch (error) {
-    throw new Error(`Failed to delete pod: ${error}`);
+    if (error instanceof McpError) throw error;
+    throw new McpError(
+      ErrorCode.InternalError,
+      `Failed to read resource: ${error}`
+    );
   }
 });
-
-server.setRequestHandler(CleanupSchema, async () => {
-  try {
-    await k8sManager.cleanup();
-    return { success: true };
-  } catch (error) {
-    throw new Error(`Failed to cleanup resources: ${error}`);
-  }
-});
-
-console.log("Starting Kubernetes MCP server...");
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

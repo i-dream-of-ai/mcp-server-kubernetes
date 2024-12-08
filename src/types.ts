@@ -1,13 +1,6 @@
 import { z } from "zod";
 
-// Base schemas
-export const KubeResourceType = z.enum([
-  "pod",
-  "deployment",
-  "service",
-  "namespace",
-]);
-
+// Kubernetes-specific types
 export const ContainerTemplate = z.enum([
   "ubuntu",
   "nginx",
@@ -15,123 +8,135 @@ export const ContainerTemplate = z.enum([
   "alpine",
 ]);
 
-// Request schemas
-export const GetContextsSchema = z.object({
-  method: z.literal("getContexts"),
-  params: z.object({}).optional(),
+// Resource response schemas
+export const ResourceSchema = z.object({
+  uri: z.string(),
+  name: z.string(),
+  description: z.string(),
 });
 
-export const SwitchContextSchema = z.object({
-  method: z.literal("switchContext"),
-  params: z.object({
-    context: z.string(),
-  }),
+// Tool response schemas
+export const ToolSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  inputSchema: z.record(z.any()),
 });
 
-export const ListResourcesSchema = z.object({
-  method: z.literal("listResources"),
-  params: z.object({
-    resourceType: KubeResourceType,
-    namespace: z.string().optional(),
-  }),
+export const ListToolsResponseSchema = z.object({
+  tools: z.array(ToolSchema),
 });
 
-export const CreatePodSchema = z.object({
-  method: z.literal("createPod"),
-  params: z.object({
-    name: z.string(),
-    namespace: z.string(),
-    template: ContainerTemplate,
-    command: z.array(z.string()).optional(),
-  }),
-});
-
-export const DeletePodSchema = z.object({
-  method: z.literal("deletePod"),
-  params: z.object({
-    name: z.string(),
-    namespace: z.string(),
-    ignoreNotFound: z.boolean().optional(),
-  }),
-});
-
-export const CreateDeploymentSchema = z.object({
-  method: z.literal("createDeployment"),
-  params: z.object({
-    name: z.string(),
-    namespace: z.string(),
-    template: ContainerTemplate,
-    replicas: z.number().default(1),
-    ports: z.array(z.number()).optional(),
-  }),
-});
-
-export const PortForwardSchema = z.object({
-  method: z.literal("portForward"),
-  params: z.object({
-    resourceType: z.enum(["pod", "service"]),
-    name: z.string(),
-    namespace: z.string(),
-    ports: z.array(
-      z.object({
-        local: z.number(),
-        remote: z.number(),
-      })
-    ),
-  }),
-});
-
-export const StopPortForwardSchema = z.object({
-  method: z.literal("stopPortForward"),
-  params: z.object({
-    id: z.string(),
-  }),
-});
-
-export const CleanupSchema = z.object({
-  method: z.literal("cleanup"),
-  params: z.object({}).optional(),
-});
-
-// Response schemas
-export const GetContextsSchemaResponse = z.object({
-  contexts: z.array(
+// Tool-specific response schemas
+export const CreatePodResponseSchema = z.object({
+  content: z.array(
     z.object({
-      name: z.string(),
-      active: z.boolean(),
+      type: z.literal("text"),
+      text: z.string(),
     })
   ),
 });
 
-export const SwitchContextSchemaResponse = z.object({
-  success: z.boolean(),
+export const CreateDeploymentResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
 });
 
-export const ListResourcesSchemaResponse = z.object({
-  items: z.array(z.any()),
+export const DeletePodResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
 });
 
-export const CreatePodSchemaResponse = z.object({
-  podName: z.string(),
+export const CleanupResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
 });
 
-export const DeletePodSchemaResponse = z.object({
-  success: z.boolean(),
+export const ListPodsResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
 });
 
-export const CreateDeploymentSchemaResponse = z.object({
-  deploymentName: z.string(),
+export const ListDeploymentsResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
 });
 
-export const PortForwardSchemaResponse = z.object({
-  id: z.string(),
-  success: z.boolean(),
+export const ListServicesResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
 });
 
-export const StopPortForwardSchemaResponse = z.object({
-  success: z.boolean(),
+export const ListNamespacesResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
 });
 
-export const CleanupSchemaResponse = z.object({
-  success: z.boolean(),
+export const ListResourcesResponseSchema = z.object({
+  resources: z.array(ResourceSchema),
 });
+
+export const ReadResourceResponseSchema = z.object({
+  contents: z.array(
+    z.object({
+      uri: z.string(),
+      mimeType: z.string(),
+      text: z.string(),
+    })
+  ),
+});
+
+// Keep existing interface definitions
+export type K8sResource = z.infer<typeof ResourceSchema>;
+export type K8sTool = z.infer<typeof ToolSchema>;
+
+// Resource tracking interfaces
+export interface ResourceTracker {
+  kind: string;
+  name: string;
+  namespace: string;
+  createdAt: Date;
+}
+
+export interface PortForwardTracker {
+  id: string;
+  server: { stop: () => Promise<void> };
+  resourceType: string;
+  name: string;
+  namespace: string;
+  ports: { local: number; remote: number }[];
+}
+
+export interface WatchTracker {
+  id: string;
+  abort: AbortController;
+  resourceType: string;
+  namespace: string;
+}
