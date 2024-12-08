@@ -7,8 +7,8 @@ MCP Server that can connect to a Kubernetes cluster and manage it.
 ```bash
 git clone https://github.com/Flux159/mcp-server-kubernetes.git
 cd mcp-server-kubernetes
-npm install
-npm test
+bun install
+bun run test
 ```
 
 ## Usage with Claude Desktop
@@ -16,16 +16,18 @@ npm test
 Clone the repo, install the dependencies, and build the dist folder:
 
 ```
-npm run build
+bun run build
 ```
 
 To use this server with the Claude Desktop app, add the following configuration to the "mcpServers" section of your `claude_desktop_config.json`:
+
+Note that you can use `node` or `bun` to run the server. Tests will currently only run properly with bun at the moment though.
 
 ```json
 {
   "mcpServers": {
     "kubernetes": {
-      "command": "node",
+      "command": "bun",
       "args": ["/your/path/to/mcp-server-kubernetes/dist/index.js"]
     }
   }
@@ -35,8 +37,8 @@ To use this server with the Claude Desktop app, add the following configuration 
 The server will automatically connect to your current kubectl context. Make sure you have:
 
 1. kubectl installed and in your PATH
-2. A valid kubeconfig file
-3. Access to a Kubernetes cluster
+2. A valid kubeconfig file with contexts configured
+3. Access to a Kubernetes cluster configured for kubectl (e.g. minikube, Rancher Desktop, GKE, etc.)
 
 You can verify your connection by asking Claude to list your pods or create a test deployment.
 
