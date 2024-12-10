@@ -1,30 +1,46 @@
 {
-    "name": "@modelcontextprotocol/server-kubernetes",
-    "version": "0.1.0",
-    "description": "MCP server for interacting with Kubernetes clusters via kubectl",
-    "license": "MIT",
-    "type": "module",
-    "bin": {
-      "mcp-server-kubernetes": "dist/index.js"
-    },
-    "files": [
-      "dist"
-    ],
-    "scripts": {
-      "build": "tsc && shx chmod +x dist/*.js",
-      "dev": "tsc --watch",
-      "start": "node dist/index.js",
-      "test": "vitest --testTimeout=20000"
-    },
-    "dependencies": {
-      "@kubernetes/client-node": "^0.20.0",
-      "@modelcontextprotocol/sdk": "1.0.1",
-      "zod": "^3.22.4"
-    },
-    "devDependencies": {
-      "@types/node": "^22.9.3",
-      "shx": "^0.3.4",
-      "typescript": "^5.6.2",
-      "vitest": "2.1.8"
-    }
+  "name": "mcp-server-kubernetes",
+  "version": "0.1.0",
+  "description": "MCP server for interacting with Kubernetes clusters via kubectl",
+  "license": "MIT",
+  "type": "module",
+  "author": "Flux159",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Flux159/mcp-server-kubernetes"
+  },
+  "bin": {
+    "mcp-server-kubernetes": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/*.js",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest --testTimeout=20000",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "kubernetes",
+    "claude",
+    "anthropic",
+    "kubectl"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^0.20.0",
+    "@modelcontextprotocol/sdk": "1.0.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.3",
+    "shx": "^0.3.4",
+    "typescript": "^5.6.2",
+    "vitest": "2.1.8"
   }
+}
