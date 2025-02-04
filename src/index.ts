@@ -699,3 +699,11 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
+
+["SIGINT", "SIGTERM"].forEach((signal) => {
+  process.on(signal, async () => {
+    console.log(`Received ${signal}, shutting down...`);
+    await server.close();
+    process.exit(0);
+  });
+});
