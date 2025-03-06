@@ -37,19 +37,110 @@ If you have errors, open up a standard terminal and run `kubectl get pods` to se
 - [x] List all deployments
 - [x] Create a pod
 - [x] Delete a pod
+- [x] Describe a pod
 - [x] List all namespaces
-- [] Port forward to a pod
-- [] Get logs from a pod for debugging
-- [] Choose namespace for next commands (memory)
-- [] Support Helm for installing charts
+- [ ] Port forward to a pod
+- [ ] Get logs from a pod for debugging
+- [ ] Choose namespace for next commands (memory)
+- [ ] Support Helm for installing charts
 
-## Development & Testing
+## In Progress
+
+- [ ] [Docker support](https://github.com/Flux159/mcp-server-kubernetes/pull/9)
+
+## Local Development
 
 ```bash
 git clone https://github.com/Flux159/mcp-server-kubernetes.git
 cd mcp-server-kubernetes
 bun install
+```
+
+### Development Workflow
+
+1. Start the server in development mode (watches for file changes):
+
+```bash
+bun run dev
+```
+
+2. Run unit tests:
+
+```bash
 bun run test
+```
+
+3. Build the project:
+
+```bash
+bun run build
+```
+
+4. Local Testing with [Inspector](https://github.com/modelcontextprotocol/inspector)
+
+```bash
+npx @modelcontextprotocol/inspector node build/index.js
+# Follow further instructions on terminal for Inspector link
+```
+
+### Project Structure
+
+```
+src/
+├── index.ts     # Main server implementation
+├── types.ts     # TypeScript type definitions
+└── unit.test.ts # Unit tests
+```
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+For bigger changes, please open an issue first to discuss the proposed changes.
+
+## Architecture
+
+This section describes the high-level architecture of the MCP Kubernetes server.
+
+### Request Flow
+
+The sequence diagram below illustrates how requests flow through the system:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Transport as StdioTransport
+    participant Server as MCP Server
+    participant Handler as Request Handler
+    participant K8sManager as KubernetesManager
+    participant K8s as Kubernetes API
+
+    Client->>Transport: Send Request via STDIO
+    Transport->>Server: Forward Request
+
+    alt Tools Request
+        Server->>Handler: Route to tools handler
+        Handler->>K8sManager: Execute tool operation
+        K8sManager->>K8s: Make API call
+        K8s-->>K8sManager: Return result
+        K8sManager-->>Handler: Process response
+        Handler-->>Server: Return tool result
+    else Resource Request
+        Server->>Handler: Route to resource handler
+        Handler->>K8sManager: Get resource data
+        K8sManager->>K8s: Query API
+        K8s-->>K8sManager: Return data
+        K8sManager-->>Handler: Format response
+        Handler-->>Server: Return resource data
+    end
+
+    Server-->>Transport: Send Response
+    Transport-->>Client: Return Final Response
 ```
 
 ## Not planned

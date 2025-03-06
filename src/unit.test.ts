@@ -105,6 +105,27 @@ test("kubernetes server operations", async () => {
     expect(createResult.podName).toBe("test-pod");
     expect(createResult.status).toBe("created");
 
+    // Describe the pod
+    console.log("Describing test pod...");
+    const describePodResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "describe_pod",
+          arguments: {
+            name: "test-pod",
+            namespace: "default",
+          },
+        },
+      },
+      CreatePodResponseSchema // Reusing existing schema since response format is similar
+    );
+    expect(describePodResult.content[0].type).toBe("text");
+    const podDescription = JSON.parse(describePodResult.content[0].text);
+    expect(podDescription.metadata.name).toBe("test-pod");
+    expect(podDescription.metadata.namespace).toBe("default");
+    expect(podDescription.kind).toBe("Pod");
+
     // List pods to verify creation
     console.log("Listing pods...");
     const listPodsResult = await client.request(
