@@ -10,9 +10,7 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as k8s from "@kubernetes/client-node";
-import * as child_process from "child_process";
 import {
-  ContainerTemplate,
   ResourceTracker,
   PortForwardTracker,
   WatchTracker,
@@ -37,17 +35,6 @@ class KubernetesManager {
   }
 
   async cleanup() {
-    console.log("Cleaning up resources...");
-
-    // Stop port forwards
-    // for (const pf of this.portForwards) {
-    //   try {
-    //     await pf.server.stop();
-    //   } catch (error) {
-    //     console.error(`Failed to close port-forward ${pf.id}:`, error);
-    //   }
-    // }
-
     // Stop watches
     for (const watch of this.watches) {
       watch.abort.abort();
@@ -68,6 +55,8 @@ class KubernetesManager {
         );
       }
     }
+
+    // TODO: Cleanup port forwards when implemented
   }
 
   trackResource(kind: string, name: string, namespace: string) {
@@ -121,6 +110,7 @@ class KubernetesManager {
 const k8sManager = new KubernetesManager();
 
 // Template configurations with health checks and resource limits
+// TODO: Update create_pod to accept custom images and custom template files
 const containerTemplates: Record<string, k8s.V1Container> = {
   ubuntu: {
     name: "main",
@@ -281,6 +271,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        // TODO: Add support for custom images and templates (see above in containerTemplates definition)
         name: "create_pod",
         description: "Create a new Kubernetes pod",
         inputSchema: {
@@ -302,6 +293,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        // TODO: Support for custom deployments (see above)
         name: "create_deployment",
         description: "Create a new Kubernetes deployment",
         inputSchema: {
@@ -359,6 +351,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     ],
   };
 });
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const { name } = request.params;
@@ -460,9 +453,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "create_pod": {
-        console.error("calling create_pod");
-        console.error(input);
-        console.error(request);
         const createPodInput = input as {
           name: string;
           namespace: string;
