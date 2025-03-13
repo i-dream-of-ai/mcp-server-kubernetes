@@ -99,6 +99,15 @@ export const ListNamespacesResponseSchema = z.object({
   ),
 });
 
+export const ListNodesResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
+});
+
 export const ListResourcesResponseSchema = z.object({
   resources: z.array(ResourceSchema),
 });

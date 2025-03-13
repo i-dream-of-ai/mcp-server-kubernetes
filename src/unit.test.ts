@@ -6,6 +6,7 @@ import {
   ListPodsResponseSchema,
   ListDeploymentsResponseSchema,
   ListNamespacesResponseSchema,
+  ListNodesResponseSchema,
   CreatePodResponseSchema,
   DeletePodResponseSchema,
   CleanupResponseSchema,
@@ -60,6 +61,23 @@ test("kubernetes server operations", async () => {
     expect(namespacesResult.content[0].type).toBe("text");
     const namespaces = JSON.parse(namespacesResult.content[0].text);
     expect(namespaces.namespaces).toBeDefined();
+
+    // List nodes
+    console.log("Listing nodes...");
+    const listNodesResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "list_nodes",
+          arguments: {},
+        },
+      },
+      ListNodesResponseSchema
+    );
+    expect(listNodesResult.content[0].type).toBe("text");
+    const nodes = JSON.parse(listNodesResult.content[0].text);
+    expect(nodes.nodes).toBeDefined();
+    expect(Array.isArray(nodes.nodes)).toBe(true);
 
     // Delete test pod if it exists
     console.log("Deleting test pod if exists...");

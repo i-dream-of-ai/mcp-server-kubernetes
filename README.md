@@ -35,6 +35,7 @@ If you have errors, open up a standard terminal and run `kubectl get pods` to se
 - [x] List all pods
 - [x] List all services
 - [x] List all deployments
+- [x] List all nodes
 - [x] Create a pod
 - [x] Delete a pod
 - [x] Describe a pod
