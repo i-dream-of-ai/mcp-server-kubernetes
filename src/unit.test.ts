@@ -20,6 +20,9 @@ import {
   DeletePodResponseSchema,
 } from "./types.js";
 
+// Fix for CI / CD github actions since minikube uses self-signed certificates
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 /**
  * Utility function to create a promise that resolves after specified milliseconds
  * Useful for waiting between operations or ensuring async operations complete
