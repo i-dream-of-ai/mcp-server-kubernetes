@@ -11,6 +11,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import * as k8s from "@kubernetes/client-node";
 import { ResourceTracker, PortForwardTracker, WatchTracker } from "./types.js";
+import { statSync } from "fs";
 
 class KubernetesManager {
   private resources: ResourceTracker[] = [];
