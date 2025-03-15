@@ -108,6 +108,15 @@ export const ListNodesResponseSchema = z.object({
   ),
 });
 
+export const GetLogsResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
+});
+
 export const ListResourcesResponseSchema = z.object({
   resources: z.array(ResourceSchema),
 });

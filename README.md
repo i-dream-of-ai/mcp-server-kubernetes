@@ -41,7 +41,7 @@ If you have errors, open up a standard terminal and run `kubectl get pods` to se
 - [x] Describe a pod
 - [x] List all namespaces
 - [ ] Port forward to a pod
-- [ ] Get logs from a pod for debugging
+- [x] Get logs from a pod for debugging (supports pods, deployments, jobs, and label selectors)
 - [ ] Choose namespace for next commands (memory)
 - [ ] Support Helm for installing charts
 
