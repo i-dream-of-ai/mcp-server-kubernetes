@@ -20,6 +20,9 @@ import {
   DeletePodResponseSchema,
 } from "./types.js";
 
+// Fix for CI / CD github actions since minikube uses self-signed certificates
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 /**
  * Utility function to create a promise that resolves after specified milliseconds
  * Useful for waiting between operations or ensuring async operations complete
@@ -160,7 +163,7 @@ describe("kubernetes server operations", () => {
    *
    * Note: Test timeout is set to 120 seconds to accommodate all operations via vitest.config.ts
    */
-  test("pod lifecycle management", async () => {
+  test("pod lifecycle management", { timeout: 120000 }, async () => {
     const podBaseName = "unit-test";
     const podName = `${podBaseName}-${generateRandomSHA()}`;
 
