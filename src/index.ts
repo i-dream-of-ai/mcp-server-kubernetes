@@ -11,6 +11,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import * as k8s from "@kubernetes/client-node";
 import { ResourceTracker, PortForwardTracker, WatchTracker } from "./types.js";
+import { statSync } from "fs";
 
 class KubernetesManager {
   private resources: ResourceTracker[] = [];
@@ -834,3 +835,17 @@ await server.connect(transport);
     process.exit(0);
   });
 });
+
+function isDocker() {
+  try {
+    statSync("/.dockerenv");
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+// Heartbeat to keep process running in docker
+// Note that this is technically a hack - in docker, if you run via -it /bin/bash, no issue
+// Issue is if you run via docker run <imagename>, then the process will exit immediately
+isDocker() && setInterval(() => {}, 60000);
