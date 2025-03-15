@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Set up Minikube
+        run: |
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+          minikube start --driver=docker
+          minikube status
+
+      - name: Configure Minikube certificates
+        run: |
+          mkdir -p ~/.minikube
+          ls -l -a ~/.minikube
+          # minikube cp minikube:/var/lib/minikube/certs/apiserver.crt ~/.minikube/
+          # minikube cp minikube:/var/lib/minikube/certs/apiserver.key ~/.minikube/
+          # chmod 600 ~/.minikube/apiserver.key
+
+      - name: Run tests
+        env:
+          NODE_EXTRA_CA_CERTS: ~/.minikube/apiserver.crt
+          NODE_TLS_REJECT_UNAUTHORIZED: "0"
+        run: bun test
