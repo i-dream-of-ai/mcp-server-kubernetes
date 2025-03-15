@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Set up Minikube
+        run: |
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+          minikube start --driver=docker
+          minikube status
+
+      - name: Start kubectl proxy
+        run: |
+          # Start the proxy in background and save the PID
+          # This gets around having to set the ca cert stuff in bun/node at ~/.minikube/ca.crt which didnt work because no SAN name in cert.
+          kubectl proxy --port=8080 &
+          echo "KUBECTL_PROXY_PID=$!" >> $GITHUB_ENV
+
+          # Give the proxy a moment to start
+          sleep 3
+
+          # Update the kubeconfig file to use the proxy URL
+          sed -i 's|https://192.168.49.2:8443|http://localhost:8080|g' ~/.kube/config
+
+          # Verify the change took effect
+          grep "server:" ~/.kube/config
+
+      - name: Run Tests
+        run: |
+          # Your script will now use the modified kubeconfig
+          bun test
+
+      - name: Clean up kubectl proxy
+        if: always()
+        run: |
+          # Always attempt to kill the proxy process even if previous steps fail
+          if [ -n "$KUBECTL_PROXY_PID" ]; then
+            echo "Stopping kubectl proxy (PID: $KUBECTL_PROXY_PID)"
+            kill $KUBECTL_PROXY_PID || true
+          fi
+
+          # Restore the original kubeconfig (optional)
+          sed -i 's|http://localhost:8080|https://192.168.49.2:8443|g' ~/.kube/config
