@@ -163,7 +163,7 @@ describe("kubernetes server operations", () => {
    *
    * Note: Test timeout is set to 120 seconds to accommodate all operations via vitest.config.ts
    */
-  test("pod lifecycle management", async () => {
+  test("pod lifecycle management", { timeout: 120000 }, async () => {
     const podBaseName = "unit-test";
     const podName = `${podBaseName}-${generateRandomSHA()}`;
 
