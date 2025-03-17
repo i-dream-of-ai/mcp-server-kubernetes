@@ -24,6 +24,7 @@ The server will automatically connect to your current kubectl context. Make sure
 1. kubectl installed and in your PATH
 2. A valid kubeconfig file with contexts configured
 3. Access to a Kubernetes cluster configured for kubectl (e.g. minikube, Rancher Desktop, GKE, etc.)
+4. Helm v3 installed and in your PATH (no Tiller required)
 
 You can verify your connection by asking Claude to list your pods or create a test deployment.
 
@@ -41,9 +42,15 @@ If you have errors, open up a standard terminal and run `kubectl get pods` to se
 - [x] Describe a pod
 - [x] List all namespaces
 - [x] Get logs from a pod for debugging (supports pods, deployments, jobs, and label selectors)
+- [x] Support Helm v3 for installing charts
+  - Install charts with custom values
+  - Uninstall releases
+  - Upgrade existing releases
+  - Support for namespaces
+  - Support for version specification
+  - Support for custom repositories
 - [ ] Port forward to a pod
 - [ ] Choose namespace for next commands (memory)
-- [ ] Support Helm for installing charts
 
 ## Local Development
 
@@ -86,6 +93,7 @@ npx @modelcontextprotocol/inspector node build/index.js
 src/
 ├── index.ts     # Main server implementation
 ├── types.ts     # TypeScript type definitions
+├── helm.test.ts # Helm chart installation tests
 └── unit.test.ts # Unit tests
 ```
 

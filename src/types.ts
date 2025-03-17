@@ -158,3 +158,40 @@ export interface WatchTracker {
   resourceType: string;
   namespace: string;
 }
+
+// Helm-related types
+export const HelmInstallRequestSchema = z.object({
+  name: z.string(),
+  chart: z.string(),
+  namespace: z.string().optional(),
+  values: z.record(z.any()).optional(),
+  version: z.string().optional(),
+  repo: z.string().optional(),
+});
+
+export const HelmUninstallRequestSchema = z.object({
+  name: z.string(),
+  namespace: z.string().optional(),
+});
+
+export const HelmUpgradeRequestSchema = z.object({
+  name: z.string(),
+  chart: z.string(),
+  repo: z.string().optional(),
+  values: z.record(z.any()),
+  namespace: z.string().optional(),
+});
+
+export const HelmResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+    })
+  ),
+});
+
+export type HelmInstallRequest = z.infer<typeof HelmInstallRequestSchema>;
+export type HelmUninstallRequest = z.infer<typeof HelmUninstallRequestSchema>;
+export type HelmUpgradeRequest = z.infer<typeof HelmUpgradeRequestSchema>;
+export type HelmResponse = z.infer<typeof HelmResponseSchema>;

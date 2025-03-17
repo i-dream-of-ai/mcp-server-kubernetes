@@ -45,7 +45,7 @@ jobs:
       - name: Run Tests
         run: |
           # Your script will now use the modified kubeconfig
-          bun test
+          bun run test
 
       - name: Clean up kubectl proxy
         if: always()

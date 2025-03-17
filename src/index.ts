@@ -10,7 +10,17 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as k8s from "@kubernetes/client-node";
-import { ResourceTracker, PortForwardTracker, WatchTracker } from "./types.js";
+import {
+  ResourceTracker,
+  PortForwardTracker,
+  WatchTracker,
+  HelmUninstallRequest,
+  HelmUpgradeRequest,
+  HelmInstallRequest,
+} from "./types.js";
+import * as fs from "fs/promises";
+import * as yaml from "js-yaml";
+import { exec } from "child_process";
 
 class KubernetesManager {
   private resources: ResourceTracker[] = [];
@@ -221,6 +231,19 @@ const server = new Server(
   }
 );
 
+// Helper function to execute shell commands
+function execCommand(command: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(`Command failed: ${error.message}\n${stderr}`));
+        return;
+      }
+      resolve(stdout.trim());
+    });
+  });
+}
+
 // Tools handlers
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -402,6 +425,71 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["resourceType"],
+        },
+      },
+      {
+        name: "install_helm_chart",
+        description: "Install a Helm chart",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Release name" },
+            chart: { type: "string", description: "Chart name or URL" },
+            namespace: {
+              type: "string",
+              description: "Target namespace",
+              optional: true,
+            },
+            values: {
+              type: "object",
+              description: "Values to override",
+              optional: true,
+            },
+            version: {
+              type: "string",
+              description: "Chart version",
+              optional: true,
+            },
+            repo: {
+              type: "string",
+              description: "Chart repository URL",
+              optional: true,
+            },
+          },
+          required: ["name", "chart"],
+        },
+      },
+      {
+        name: "uninstall_helm_chart",
+        description: "Uninstall a Helm release",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Release name" },
+            namespace: {
+              type: "string",
+              description: "Release namespace",
+              optional: true,
+            },
+          },
+          required: ["name"],
+        },
+      },
+      {
+        name: "upgrade_helm_chart",
+        description: "Upgrade a Helm release with new values",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Release name" },
+            values: { type: "object", description: "New values to apply" },
+            namespace: {
+              type: "string",
+              description: "Release namespace",
+              optional: true,
+            },
+          },
+          required: ["name", "values"],
         },
       },
     ],
@@ -954,6 +1042,96 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             `Failed to get logs: ${error}`
           );
         }
+      }
+
+      case "install_helm_chart": {
+        const installInput = input as HelmInstallRequest;
+        let command = `helm install ${installInput.name} ${installInput.chart}`;
+
+        if (installInput.namespace) {
+          command += ` -n ${installInput.namespace}`;
+        }
+
+        if (installInput.values) {
+          const valuesFile = `${installInput.name}-values.yaml`;
+          await fs.writeFile(valuesFile, yaml.dump(installInput.values));
+          command += ` -f ${valuesFile}`;
+        }
+
+        if (installInput.version) {
+          command += ` --version ${installInput.version}`;
+        }
+
+        if (installInput.repo) {
+          command += ` --repo ${installInput.repo}`;
+        }
+
+        const result = await execCommand(command);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                { status: "installed", output: result },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      case "uninstall_helm_chart": {
+        const uninstallInput = input as HelmUninstallRequest;
+        let command = `helm uninstall ${uninstallInput.name}`;
+
+        if (uninstallInput.namespace) {
+          command += ` -n ${uninstallInput.namespace}`;
+        }
+
+        const result = await execCommand(command);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                { status: "uninstalled", output: result },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      case "upgrade_helm_chart": {
+        const upgradeInput = input as HelmUpgradeRequest;
+        const valuesFile = `${upgradeInput.name}-values.yaml`;
+        await fs.writeFile(valuesFile, yaml.dump(upgradeInput.values));
+
+        let command = `helm upgrade ${upgradeInput.name} ${upgradeInput.chart} -f ${valuesFile}`;
+
+        if (upgradeInput.namespace) {
+          command += ` -n ${upgradeInput.namespace}`;
+        }
+
+        if (upgradeInput.repo) {
+          command += ` --repo ${upgradeInput.repo}`;
+        }
+
+        const result = await execCommand(command);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                { status: "upgraded", output: result },
+                null,
+                2
+              ),
+            },
+          ],
+        };
       }
 
       default:
