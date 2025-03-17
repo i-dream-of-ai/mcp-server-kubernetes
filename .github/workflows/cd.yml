@@ -12,6 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -71,11 +72,20 @@ jobs:
 
       - name: Commit the new version
         run: |
+          # Make sure we're on main branch
+          git checkout main
+
           # Update the version in package.json and commit the change
           jq --arg v "${{ steps.version.outputs.current-version }}" '.version = $v' package.json > temp.json && mv temp.json package.json
+
           git add package.json
           git commit -m "Bump version to ${{ steps.version.outputs.current-version }}"
+
+          # Create and push the tag
           git tag ${{ steps.version.outputs.current-version }}
+
+          # Push both the commit and the tag
+          git push origin main
           git push origin ${{ steps.version.outputs.current-version }}
 
       - name: Build For production
