@@ -168,6 +168,12 @@ sequenceDiagram
     Transport-->>Client: Return Final Response
 ```
 
+## Publishing new release
+
+Just go to the [releases page](https://github.com/Flux159/mcp-server-kubernetes/releases), click on "Draft New Release", click "Choose a tag" and create a new tag by typing out a new version number using "v{major}.{minor}.{patch}" semver format. Then, write a release title "Release v{major}.{minor}.{patch}" and description / changelog if necessary and click "Publish Release".
+
+This will create a new tag which will trigger a new release build via the cd.yml workflow. Once successful, the new release will be published to [npm](https://www.npmjs.com/package/mcp-server-kubernetes).
+
 ## Not planned
 
 Authentication / adding clusters to kubectx.
