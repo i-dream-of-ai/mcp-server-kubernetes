@@ -41,7 +41,7 @@ jobs:
           grep "server:" ~/.kube/config
 
       - name: Run Tests in Minikube
-        run: bun test
+        run: bun run test
 
       - name: Clean up kubectl proxy
         if: always()
