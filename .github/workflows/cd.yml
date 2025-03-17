@@ -71,10 +71,8 @@ jobs:
           git tag ${{ steps.version.outputs.version }}
           git push origin ${{ steps.version.outputs.version }}
 
-      - name:
-          Build For production
-          # since we are using bun(in ci.yml), we can use bun build --production
-        run: bun build --production
+      - name: Build For production
+        run: bun run build
 
       - name: Publish to NPM
         run: npm publish --access public
