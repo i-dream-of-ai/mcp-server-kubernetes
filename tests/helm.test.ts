@@ -181,7 +181,7 @@ describe("helm operations", () => {
               replicaCount: 2,
               service: {
                 type: "ClusterIP",
-              }
+              },
             },
           },
         },
