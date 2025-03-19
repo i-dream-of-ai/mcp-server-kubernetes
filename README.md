@@ -30,6 +30,28 @@ You can verify your connection by asking Claude to list your pods or create a te
 
 If you have errors open up a standard terminal and run `kubectl get pods` to see if you can connect to your cluster without credentials issues.
 
+## Usage with mcp-chat
+
+[mcp-chat](https://github.com/Flux159/mcp-chat) is a CLI chat client for MCP servers. You can use it to interact with the Kubernetes server.
+
+```shell
+npx mcp-chat --server "npx mcp-server-kubernetes"
+```
+
+Alternatively, pass it your existing Claude Desktop configuration file from above (Linux should pass the correct path to config):
+
+Mac:
+
+```shell
+npx mcp-chat --config "~/Library/Application Support/Claude/claude_desktop_config.json"
+```
+
+Windows:
+
+```shell
+npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
+```
+
 ## Features
 
 - [x] Connect to a Kubernetes cluster
@@ -86,6 +108,12 @@ bun run build
 ```bash
 npx @modelcontextprotocol/inspector node build/index.js
 # Follow further instructions on terminal for Inspector link
+```
+
+5. Local testing with [mcp-chat](https://github.com/Flux159/mcp-chat)
+
+```bash
+npm run chat
 ```
 
 ### Project Structure
