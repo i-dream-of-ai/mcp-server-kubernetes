@@ -2,6 +2,7 @@ import { expect, test, describe, beforeEach, afterEach } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { KubectlResponseSchema } from "../src/models/kubectl-models.js";
+import { GetEventsResponseSchema } from "../src/models/response-schemas.js";
 import * as fs from "fs";
 
 async function sleep(ms: number): Promise<void> {
@@ -138,5 +139,92 @@ describe("kubectl operations", () => {
     expect(text).toContain("deployments");
     expect(text).toContain("statefulsets");
     expect(text).toContain("daemonsets");
+  });
+
+  /**
+   * Test suite for get_events functionality
+   * Tests retrieval of Kubernetes events with various filtering options
+   */
+  describe("get events", () => {
+    test("get events from specific namespace", async () => {
+      const result = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "get_events",
+            arguments: {
+              namespace: "default"
+            }
+          }
+        },
+        GetEventsResponseSchema
+      );
+
+      expect(result.content[0].type).toBe("text");
+      const events = JSON.parse(result.content[0].text);
+      expect(events.events).toBeDefined();
+      expect(Array.isArray(events.events)).toBe(true);
+
+      // Verify event object structure if events exist
+      if (events.events.length > 0) {
+        const event = events.events[0];
+        expect(event).toHaveProperty("type");
+        expect(event).toHaveProperty("reason");
+        expect(event).toHaveProperty("message");
+        expect(event).toHaveProperty("involvedObject");
+        expect(event.involvedObject).toHaveProperty("kind");
+        expect(event.involvedObject).toHaveProperty("name");
+        expect(event.involvedObject).toHaveProperty("namespace");
+        expect(event).toHaveProperty("firstTimestamp");
+        expect(event).toHaveProperty("lastTimestamp");
+        expect(event).toHaveProperty("count");
+      }
+    });
+
+    test("get events from all namespaces", async () => {
+      const result = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "get_events",
+            arguments: {}
+          }
+        },
+        GetEventsResponseSchema
+      );
+
+      expect(result.content[0].type).toBe("text");
+      const events = JSON.parse(result.content[0].text);
+      expect(events.events).toBeDefined();
+      expect(Array.isArray(events.events)).toBe(true);
+    });
+
+    test("get events with field selector", async () => {
+      const result = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "get_events",
+            arguments: {
+              namespace: "default",
+              fieldSelector: "type=Normal"
+            }
+          }
+        },
+        GetEventsResponseSchema
+      );
+
+      expect(result.content[0].type).toBe("text");
+      const events = JSON.parse(result.content[0].text);
+      expect(events.events).toBeDefined();
+      expect(Array.isArray(events.events)).toBe(true);
+
+      // Verify filtered events
+      if (events.events.length > 0) {
+        events.events.forEach((event: any) => {
+          expect(event.type).toBe("Normal");
+        });
+      }
+    });
   });
 });

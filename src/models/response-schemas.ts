@@ -45,3 +45,7 @@ export const ListNodesResponseSchema = z.object({
 export const GetLogsResponseSchema = z.object({
   content: z.array(ToolResponseContent),
 });
+
+export const GetEventsResponseSchema = z.object({
+  content: z.array(ToolResponseContent),
+});

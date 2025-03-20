@@ -26,6 +26,7 @@ import { createPod, createPodSchema } from "./tools/create_pod.js";
 import { deletePod, deletePodSchema } from "./tools/delete_pod.js";
 import { describePod, describePodSchema } from "./tools/describe_pod.js";
 import { getLogs, getLogsSchema } from "./tools/get_logs.js";
+import { getEvents, getEventsSchema } from "./tools/get_events.js";
 import { getResourceHandlers } from "./resources/handlers.js";
 import {
   ListResourcesRequestSchema,
@@ -56,22 +57,23 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
-      listPodsSchema,
-      listDeploymentsSchema,
-      listServicesSchema,
-      listNamespacesSchema,
-      createPodSchema,
+      cleanupSchema,
       createDeploymentSchema,
+      createPodSchema,
       deletePodSchema,
       describePodSchema,
-      cleanupSchema,
-      listNodesSchema,
+      explainResourceSchema,
+      getEventsSchema,
       getLogsSchema,
       installHelmChartSchema,
-      upgradeHelmChartSchema,
-      uninstallHelmChartSchema,
-      explainResourceSchema,
       listApiResourcesSchema,
+      listDeploymentsSchema,
+      listNamespacesSchema,
+      listNodesSchema,
+      listPodsSchema,
+      listServicesSchema,
+      uninstallHelmChartSchema,
+      upgradeHelmChartSchema,
     ],
   };
 });
@@ -86,38 +88,19 @@ server.setRequestHandler(
       const { name, arguments: input = {} } = request.params;
 
       switch (name) {
-        case "list_pods": {
-          return await listPods(k8sManager, input as { namespace?: string });
-        }
-
-        case "list_deployments": {
-          return await listDeployments(
-            k8sManager,
-            input as { namespace?: string }
-          );
-        }
-
-        case "list_services": {
-          return await listServices(
-            k8sManager,
-            input as { namespace?: string }
-          );
-        }
-
-        case "list_namespaces": {
-          const { body } = await k8sManager.getCoreApi().listNamespace();
-
-          const namespaces = body.items.map((ns: k8s.V1Namespace) => ({
-            name: ns.metadata?.name || "",
-            status: ns.status?.phase || "",
-            createdAt: ns.metadata?.creationTimestamp,
-          }));
-
+        case "cleanup": {
+          await k8sManager.cleanup();
           return {
             content: [
               {
                 type: "text",
-                text: JSON.stringify({ namespaces }, null, 2),
+                text: JSON.stringify(
+                  {
+                    success: true,
+                  },
+                  null,
+                  2
+                ),
               },
             ],
           };
@@ -156,26 +139,25 @@ server.setRequestHandler(
           );
         }
 
-        case "cleanup": {
-          await k8sManager.cleanup();
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(
-                  {
-                    success: true,
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
+        case "explain_resource": {
+          return await explainResource(
+            input as {
+              resource: string;
+              apiVersion?: string;
+              recursive?: boolean;
+              output?: "plaintext" | "plaintext-openapiv2";
+            }
+          );
         }
 
-        case "list_nodes": {
-          return await listNodes(k8sManager);
+        case "get_events": {
+          return await getEvents(
+            k8sManager,
+            input as {
+              namespace?: string;
+              fieldSelector?: string;
+            }
+          );
         }
 
         case "get_logs": {
@@ -208,15 +190,55 @@ server.setRequestHandler(
           );
         }
 
-        case "upgrade_helm_chart": {
-          return await upgradeHelmChart(
+        case "list_api_resources": {
+          return await listApiResources(
             input as {
-              name: string;
-              chart: string;
-              repo: string;
-              namespace: string;
-              values?: Record<string, any>;
+              apiGroup?: string;
+              namespaced?: boolean;
+              verbs?: string[];
+              output?: "wide" | "name" | "no-headers";
             }
+          );
+        }
+
+        case "list_deployments": {
+          return await listDeployments(
+            k8sManager,
+            input as { namespace?: string }
+          );
+        }
+
+        case "list_namespaces": {
+          const { body } = await k8sManager.getCoreApi().listNamespace();
+
+          const namespaces = body.items.map((ns: k8s.V1Namespace) => ({
+            name: ns.metadata?.name || "",
+            status: ns.status?.phase || "",
+            createdAt: ns.metadata?.creationTimestamp,
+          }));
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({ namespaces }, null, 2),
+              },
+            ],
+          };
+        }
+
+        case "list_nodes": {
+          return await listNodes(k8sManager);
+        }
+
+        case "list_pods": {
+          return await listPods(k8sManager, input as { namespace?: string });
+        }
+
+        case "list_services": {
+          return await listServices(
+            k8sManager,
+            input as { namespace?: string }
           );
         }
 
@@ -229,24 +251,14 @@ server.setRequestHandler(
           );
         }
 
-        case "explain_resource": {
-          return await explainResource(
+        case "upgrade_helm_chart": {
+          return await upgradeHelmChart(
             input as {
-              resource: string;
-              apiVersion?: string;
-              recursive?: boolean;
-              output?: "plaintext" | "plaintext-openapiv2";
-            }
-          );
-        }
-
-        case "list_api_resources": {
-          return await listApiResources(
-            input as {
-              apiGroup?: string;
-              namespaced?: boolean;
-              verbs?: string[];
-              output?: "wide" | "name" | "no-headers";
+              name: string;
+              chart: string;
+              repo: string;
+              namespace: string;
+              values?: Record<string, any>;
             }
           );
         }

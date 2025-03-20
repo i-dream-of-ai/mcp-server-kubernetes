@@ -6,6 +6,8 @@ https://github.com/user-attachments/assets/f25f8f4e-4d04-479b-9ae0-5dac452dd2ed
 
 <a href="https://glama.ai/mcp/servers/w71ieamqrt"><img width="380" height="200" src="https://glama.ai/mcp/servers/w71ieamqrt/badge" /></a>
 
+[![smithery badge](https://smithery.ai/badge/mcp-server-kubernetes)](https://smithery.ai/server/mcp-server-kubernetes)
+
 ## Usage with Claude Desktop
 
 ```json
@@ -72,6 +74,7 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
   - Support for version specification
   - Support for custom repositories
 - [x] kubectl explain and kubectl api-resources support
+- [x] Get Kubernetes events from the cluster
 - [ ] Port forward to a pod
 - [ ] Choose namespace for next commands (memory)
 
