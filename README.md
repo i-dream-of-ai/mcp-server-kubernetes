@@ -118,7 +118,7 @@ bun run build
 4. Local Testing with [Inspector](https://github.com/modelcontextprotocol/inspector)
 
 ```bash
-npx @modelcontextprotocol/inspector node build/index.js
+npx @modelcontextprotocol/inspector node dist/index.js
 # Follow further instructions on terminal for Inspector link
 ```
 
