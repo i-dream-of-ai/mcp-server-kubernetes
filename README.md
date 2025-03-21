@@ -135,7 +135,7 @@ npx @modelcontextprotocol/inspector node dist/index.js
 }
 ```
 
-5. Local testing with [mcp-chat](https://github.com/Flux159/mcp-chat)
+6. Local testing with [mcp-chat](https://github.com/Flux159/mcp-chat)
 
 ```bash
 npm run chat
