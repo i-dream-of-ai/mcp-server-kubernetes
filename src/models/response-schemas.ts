@@ -22,6 +22,10 @@ export const DeletePodResponseSchema = z.object({
   content: z.array(ToolResponseContent),
 });
 
+export const DeleteDeploymentResponseSchema = z.object({
+  content: z.array(ToolResponseContent),
+});
+
 export const CleanupResponseSchema = z.object({
   content: z.array(ToolResponseContent),
 });

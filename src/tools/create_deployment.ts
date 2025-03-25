@@ -8,9 +8,9 @@ import {
   CustomContainerConfigType,
 } from "../config/container-templates.js";
 
-export const createPodSchema = {
-  name: "create_pod",
-  description: "Create a new Kubernetes pod",
+export const createDeploymentSchema = {
+  name: "create_deployment",
+  description: "Create a new Kubernetes deployment",
   inputSchema: {
     type: "object",
     properties: {
@@ -20,9 +20,10 @@ export const createPodSchema = {
         type: "string",
         enum: ContainerTemplate.options,
       },
-      command: {
+      replicas: { type: "number", default: 1 },
+      ports: {
         type: "array",
-        items: { type: "string" },
+        items: { type: "number" },
         optional: true,
       },
       customConfig: {
@@ -85,13 +86,14 @@ export const createPodSchema = {
   },
 } as const;
 
-export async function createPod(
+export async function createDeployment(
   k8sManager: KubernetesManager,
   input: {
     name: string;
     namespace: string;
     template: string;
-    command?: string[];
+    replicas?: number;
+    ports?: number[];
     customConfig?: CustomContainerConfigType;
   }
 ) {
@@ -110,35 +112,29 @@ export async function createPod(
     // Validate custom config against schema
     const validatedConfig = CustomContainerConfig.parse(input.customConfig);
 
-    // Create a new container config with all fields explicitly set
+    // Merge base template with custom config
     containerConfig = {
-      name: "main",
+      ...templateConfig,
       image: validatedConfig.image,
       command: validatedConfig.command,
       args: validatedConfig.args,
-      ports: validatedConfig.ports || [],
-      resources: validatedConfig.resources || {
-        limits: {},
-        requests: {},
-      },
-      env: validatedConfig.env || [],
-      volumeMounts: validatedConfig.volumeMounts || [],
-      livenessProbe: templateConfig.livenessProbe,
-      readinessProbe: templateConfig.readinessProbe,
+      ports: validatedConfig.ports,
+      resources: validatedConfig.resources,
+      env: validatedConfig.env,
+      volumeMounts: validatedConfig.volumeMounts,
     };
   } else {
     containerConfig = {
       ...templateConfig,
-      ...(input.command && {
-        command: input.command,
-        args: undefined, // Clear default args when command is overridden
-      }),
+      ports:
+        input.ports?.map((port) => ({ containerPort: port })) ||
+        templateConfig.ports,
     };
   }
 
-  const pod: k8s.V1Pod = {
-    apiVersion: "v1",
-    kind: "Pod",
+  const deployment: k8s.V1Deployment = {
+    apiVersion: "apps/v1",
+    kind: "Deployment",
     metadata: {
       name: input.name,
       namespace: input.namespace,
@@ -148,15 +144,30 @@ export async function createPod(
       },
     },
     spec: {
-      containers: [containerConfig],
+      replicas: input.replicas || 1,
+      selector: {
+        matchLabels: {
+          app: input.name,
+        },
+      },
+      template: {
+        metadata: {
+          labels: {
+            app: input.name,
+          },
+        },
+        spec: {
+          containers: [containerConfig],
+        },
+      },
     },
   };
 
   const response = await k8sManager
-    .getCoreApi()
-    .createNamespacedPod(input.namespace, pod)
+    .getAppsApi()
+    .createNamespacedDeployment(input.namespace, deployment)
     .catch((error: any) => {
-      console.error("Pod creation error:", {
+      console.error("Deployment creation error:", {
         status: error.response?.statusCode,
         message: error.response?.body?.message || error.message,
         details: error.response?.body,
@@ -164,7 +175,7 @@ export async function createPod(
       throw error;
     });
 
-  k8sManager.trackResource("Pod", input.name, input.namespace);
+  k8sManager.trackResource("Deployment", input.name, input.namespace);
 
   return {
     content: [
@@ -172,7 +183,7 @@ export async function createPod(
         type: "text",
         text: JSON.stringify(
           {
-            podName: response.body.metadata!.name!,
+            deploymentName: response.body.metadata!.name!,
             status: "created",
           },
           null,
