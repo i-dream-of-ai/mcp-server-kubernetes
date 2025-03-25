@@ -3,7 +3,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { KubectlResponseSchema } from "../src/models/kubectl-models.js";
 import { GetEventsResponseSchema } from "../src/models/response-schemas.js";
-import * as fs from "fs";
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -153,9 +152,9 @@ describe("kubectl operations", () => {
           params: {
             name: "get_events",
             arguments: {
-              namespace: "default"
-            }
-          }
+              namespace: "default",
+            },
+          },
         },
         GetEventsResponseSchema
       );
@@ -187,8 +186,8 @@ describe("kubectl operations", () => {
           method: "tools/call",
           params: {
             name: "get_events",
-            arguments: {}
-          }
+            arguments: {},
+          },
         },
         GetEventsResponseSchema
       );
@@ -207,9 +206,9 @@ describe("kubectl operations", () => {
             name: "get_events",
             arguments: {
               namespace: "default",
-              fieldSelector: "type=Normal"
-            }
-          }
+              fieldSelector: "type=Normal",
+            },
+          },
         },
         GetEventsResponseSchema
       );

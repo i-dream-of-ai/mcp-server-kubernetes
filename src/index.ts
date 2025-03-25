@@ -22,6 +22,7 @@ import {
   listApiResources,
   listApiResourcesSchema,
 } from "./tools/kubectl-operations.js";
+import { createNamespace, createNamespaceSchema } from "./tools/create_namespace.js";
 import { createPod, createPodSchema } from "./tools/create_pod.js";
 import { deletePod, deletePodSchema } from "./tools/delete_pod.js";
 import { describePod, describePodSchema } from "./tools/describe_pod.js";
@@ -60,6 +61,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       cleanupSchema,
       createDeploymentSchema,
+      createNamespaceSchema,
       createPodSchema,
       deletePodSchema,
       describePodSchema,
@@ -105,6 +107,15 @@ server.setRequestHandler(
               },
             ],
           };
+        }
+
+        case "create_namespace": {
+            return await createNamespace(
+                k8sManager,
+                input as {
+                name: string;
+                }
+            );
         }
 
         case "create_pod": {

@@ -6,6 +6,10 @@ const ToolResponseContent = z.object({
   text: z.string(),
 });
 
+export const CreateNamespaceResponseSchema = z.object({
+  content: z.array(ToolResponseContent),
+});
+
 export const CreatePodResponseSchema = z.object({
   content: z.array(ToolResponseContent),
 });
