@@ -53,6 +53,12 @@ import {
   stopPortForward,
   StopPortForwardSchema,
 } from "./tools/port_forward.js";
+import { deleteDeployment } from "./tools/delete_deployment.js";
+import { createDeployment } from "./tools/create_deployment.js";
+import {
+  describeDeployment,
+  describeDeploymentSchema,
+} from "./tools/describe_deployment.js";
 
 const k8sManager = new KubernetesManager();
 
@@ -74,6 +80,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       createPodSchema,
       deletePodSchema,
       describePodSchema,
+      describeDeploymentSchema,
       explainResourceSchema,
       getEventsSchema,
       getLogsSchema,
@@ -303,6 +310,41 @@ server.setRequestHandler(
             k8sManager,
             input as {
               id: string;
+            }
+          );
+        }
+
+        case "delete_deployment": {
+          return await deleteDeployment(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+              ignoreNotFound?: boolean;
+            }
+          );
+        }
+
+        case "create_deployment": {
+          return await createDeployment(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+              template: string;
+              replicas?: number;
+              ports?: number[];
+              customConfig?: any;
+            }
+          );
+        }
+
+        case "describe_deployment": {
+          return await describeDeployment(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
             }
           );
         }

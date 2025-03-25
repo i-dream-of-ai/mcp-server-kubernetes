@@ -18,6 +18,9 @@ import {
   ListNodesResponseSchema,
   CreatePodResponseSchema,
   DeletePodResponseSchema,
+  CreateDeploymentResponseSchema,
+  DeleteDeploymentResponseSchema,
+  ListDeploymentsResponseSchema,
 } from "../src/models/response-schemas.js";
 
 /**
@@ -373,5 +376,273 @@ describe("kubernetes server operations", () => {
       }
     },
     { timeout: 120000 }
+  );
+
+  /**
+   * Test case: Verify custom pod configuration
+   * Tests creating a pod with a custom configuration
+   */
+  test(
+    "custom pod configuration",
+    async () => {
+      const podName = `custom-test-${generateRandomSHA()}`;
+      const namespace = "default";
+
+      // Create a pod with custom configuration
+      const createPodResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "create_pod",
+            arguments: {
+              name: podName,
+              namespace: namespace,
+              template: "custom",
+              customConfig: {
+                image: "nginx:latest",
+                ports: [
+                  {
+                    containerPort: 80,
+                    name: "http",
+                    protocol: "TCP",
+                  },
+                ],
+                resources: {
+                  limits: {
+                    cpu: "200m",
+                    memory: "256Mi",
+                  },
+                  requests: {
+                    cpu: "100m",
+                    memory: "128Mi",
+                  },
+                },
+                env: [
+                  {
+                    name: "NODE_ENV",
+                    value: "production",
+                  },
+                ],
+              },
+            },
+          },
+        },
+        CreatePodResponseSchema
+      );
+
+      expect(createPodResult.content[0].type).toBe("text");
+      const podResult = JSON.parse(createPodResult.content[0].text);
+      expect(podResult.podName).toBe(podName);
+
+      // Wait for pod to be running
+      let podRunning = false;
+      const startTime = Date.now();
+
+      while (!podRunning && Date.now() - startTime < 60000) {
+        const podStatus = await client.request(
+          {
+            method: "tools/call",
+            params: {
+              name: "describe_pod",
+              arguments: {
+                name: podName,
+                namespace: namespace,
+              },
+            },
+          },
+          ListPodsResponseSchema
+        );
+
+        const status = JSON.parse(podStatus.content[0].text);
+        if (status.status?.phase === "Running") {
+          podRunning = true;
+          break;
+        }
+        await sleep(1000);
+      }
+
+      expect(podRunning).toBe(true);
+
+      // Verify pod configuration
+      const podDetails = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "describe_pod",
+            arguments: {
+              name: podName,
+              namespace: namespace,
+            },
+          },
+        },
+        ListPodsResponseSchema
+      );
+
+      const details = JSON.parse(podDetails.content[0].text);
+      const container = details.spec.containers[0];
+
+      expect(container.image).toBe("nginx:latest");
+      expect(container.ports[0].containerPort).toBe(80);
+      expect(container.ports[0].name).toBe("http");
+      expect(container.ports[0].protocol).toBe("TCP");
+      expect(container.resources.limits.cpu).toBe("200m");
+      expect(container.resources.limits.memory).toBe("256Mi");
+      expect(container.resources.requests.cpu).toBe("100m");
+      expect(container.resources.requests.memory).toBe("128Mi");
+
+      // Cleanup
+      await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "delete_pod",
+            arguments: {
+              name: podName,
+              namespace: namespace,
+            },
+          },
+        },
+        DeletePodResponseSchema
+      );
+    },
+    { timeout: 60000 }
+  );
+
+  /**
+   * Test case: Verify custom deployment configuration
+   * Tests creating a deployment with a custom configuration
+   */
+  test(
+    "custom deployment configuration",
+    async () => {
+      const deploymentName = `custom-deploy-${generateRandomSHA()}`;
+      const namespace = "default";
+
+      // Create a deployment with custom configuration
+      const createDeploymentResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "create_deployment",
+            arguments: {
+              name: deploymentName,
+              namespace: namespace,
+              template: "custom",
+              replicas: 2,
+              customConfig: {
+                image: "nginx:latest",
+                ports: [
+                  {
+                    containerPort: 80,
+                    name: "http",
+                    protocol: "TCP",
+                  },
+                ],
+                resources: {
+                  limits: {
+                    cpu: "200m",
+                    memory: "256Mi",
+                  },
+                  requests: {
+                    cpu: "100m",
+                    memory: "128Mi",
+                  },
+                },
+                env: [
+                  {
+                    name: "NODE_ENV",
+                    value: "production",
+                  },
+                ],
+              },
+            },
+          },
+        },
+        CreateDeploymentResponseSchema
+      );
+
+      expect(createDeploymentResult.content[0].type).toBe("text");
+      const deploymentResult = JSON.parse(
+        createDeploymentResult.content[0].text
+      );
+      expect(deploymentResult.deploymentName).toBe(deploymentName);
+
+      // Wait for deployment to be ready
+      let deploymentReady = false;
+      const startTime = Date.now();
+
+      while (!deploymentReady && Date.now() - startTime < 60000) {
+        const deploymentStatus = await client.request(
+          {
+            method: "tools/call",
+            params: {
+              name: "list_deployments",
+              arguments: {
+                namespace: namespace,
+              },
+            },
+          },
+          ListDeploymentsResponseSchema
+        );
+
+        const status = JSON.parse(deploymentStatus.content[0].text);
+        const deployment = status.deployments.find(
+          (d: any) => d.name === deploymentName
+        );
+
+        if (deployment && deployment.availableReplicas === 2) {
+          deploymentReady = true;
+          break;
+        }
+        await sleep(1000);
+      }
+
+      expect(deploymentReady).toBe(true);
+
+      // Verify deployment configuration
+      const deploymentDetails = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "describe_deployment",
+            arguments: {
+              name: deploymentName,
+              namespace: namespace,
+            },
+          },
+        },
+        ListDeploymentsResponseSchema
+      );
+
+      const details = JSON.parse(deploymentDetails.content[0].text);
+      const container = details.spec.template.spec.containers[0];
+
+      expect(container.image).toBe("nginx:latest");
+      expect(container.ports[0].containerPort).toBe(80);
+      expect(container.ports[0].name).toBe("http");
+      expect(container.ports[0].protocol).toBe("TCP");
+      expect(container.resources.limits.cpu).toBe("200m");
+      expect(container.resources.limits.memory).toBe("256Mi");
+      expect(container.resources.requests.cpu).toBe("100m");
+      expect(container.resources.requests.memory).toBe("128Mi");
+      expect(container.env[0].name).toBe("NODE_ENV");
+      expect(container.env[0].value).toBe("production");
+
+      // Cleanup
+      await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "delete_deployment",
+            arguments: {
+              name: deploymentName,
+              namespace: namespace,
+            },
+          },
+        },
+        DeleteDeploymentResponseSchema
+      );
+    },
+    { timeout: 60000 }
   );
 });
