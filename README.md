@@ -74,6 +74,7 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 - [x] Delete a pod
 - [x] Describe a pod
 - [x] List all namespaces
+- [x] Create a namespace
 - [x] Get logs from a pod for debugging (supports pods deployments jobs and label selectors)
 - [x] Support Helm v3 for installing charts
   - Install charts with custom values
@@ -84,8 +85,7 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
   - Support for custom repositories
 - [x] kubectl explain and kubectl api-resources support
 - [x] Get Kubernetes events from the cluster
-- [ ] Port forward to a pod
-- [ ] Choose namespace for next commands (memory)
+- [x] Port forward to a pod or service
 
 ## Local Development
 
