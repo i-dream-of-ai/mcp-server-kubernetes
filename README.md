@@ -75,7 +75,8 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 - [x] Describe a pod
 - [x] List all namespaces
 - [x] Create a namespace
-- [x] Get logs from a pod for debugging (supports pods deployments jobs and label selectors)
+- [x] Create custom pod & deployment configs
+- [x] Get logs from a pod for debugging (supports pods, deployments, jobs, and label selectors)
 - [x] Support Helm v3 for installing charts
   - Install charts with custom values
   - Uninstall releases
