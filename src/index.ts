@@ -22,7 +22,10 @@ import {
   listApiResources,
   listApiResourcesSchema,
 } from "./tools/kubectl-operations.js";
-import { createNamespace, createNamespaceSchema } from "./tools/create_namespace.js";
+import {
+  createNamespace,
+  createNamespaceSchema,
+} from "./tools/create_namespace.js";
 import { createPod, createPodSchema } from "./tools/create_pod.js";
 import { deletePod, deletePodSchema } from "./tools/delete_pod.js";
 import { describePod, describePodSchema } from "./tools/describe_pod.js";
@@ -44,6 +47,12 @@ import { createDeploymentSchema } from "./config/deployment-config.js";
 import { listNamespacesSchema } from "./config/namespace-config.js";
 import { cleanupSchema } from "./config/cleanup-config.js";
 import { startSSEServer } from "./utils/sse.js";
+import {
+  startPortForward,
+  PortForwardSchema,
+  stopPortForward,
+  StopPortForwardSchema,
+} from "./tools/port_forward.js";
 
 const k8sManager = new KubernetesManager();
 
@@ -77,6 +86,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       listServicesSchema,
       uninstallHelmChartSchema,
       upgradeHelmChartSchema,
+      PortForwardSchema,
+      StopPortForwardSchema,
     ],
   };
 });
@@ -110,12 +121,12 @@ server.setRequestHandler(
         }
 
         case "create_namespace": {
-            return await createNamespace(
-                k8sManager,
-                input as {
-                name: string;
-                }
-            );
+          return await createNamespace(
+            k8sManager,
+            input as {
+              name: string;
+            }
+          );
         }
 
         case "create_pod": {
@@ -271,6 +282,27 @@ server.setRequestHandler(
               repo: string;
               namespace: string;
               values?: Record<string, any>;
+            }
+          );
+        }
+
+        case "port_forward": {
+          return await startPortForward(
+            k8sManager,
+            input as {
+              resourceType: string;
+              resourceName: string;
+              localPort: number;
+              targetPort: number;
+            }
+          );
+        }
+
+        case "stop_port_forward": {
+          return await stopPortForward(
+            k8sManager,
+            input as {
+              id: string;
             }
           );
         }
