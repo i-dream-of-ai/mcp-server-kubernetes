@@ -63,6 +63,7 @@ export const PortForwardSchema = {
       resourceName: { type: "string" },
       localPort: { type: "number" },
       targetPort: { type: "number" },
+      namespace: { type: "string" },
     },
     required: ["resourceType", "resourceName", "localPort", "targetPort"],
   },
@@ -75,9 +76,15 @@ export async function startPortForward(
     resourceName: string;
     localPort: number;
     targetPort: number;
+    namespace?: string;
   }
 ): Promise<{ content: { success: boolean; message: string }[] }> {
-  let command = `kubectl port-forward ${input.resourceType}/${input.resourceName} ${input.localPort}:${input.targetPort}`;
+  let command = `kubectl port-forward`;
+  if (input.namespace) {
+    command += ` -n ${input.namespace}`;
+  }
+  command += ` ${input.resourceType}/${input.resourceName} ${input.localPort}:${input.targetPort}`;
+
   try {
     const result = await executeKubectlCommandAsync(command);
     // Track the port-forward process
@@ -97,7 +104,7 @@ export async function startPortForward(
       },
       resourceType: input.resourceType,
       name: input.resourceName,
-      namespace: "default", // TODO: Make namespace configurable
+      namespace: input.namespace || "default",
       ports: [{ local: input.localPort, remote: input.targetPort }],
     });
     return {
