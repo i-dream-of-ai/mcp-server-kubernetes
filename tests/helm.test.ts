@@ -45,7 +45,7 @@ describe("helm operations", () => {
   let transport: StdioClientTransport;
   let client: Client;
   const testReleaseName = "test-nginx";
-  const testNamespace = "default";
+  const testNamespace = "default_helm";
 
   beforeEach(async () => {
     try {
