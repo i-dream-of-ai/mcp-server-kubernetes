@@ -14,10 +14,24 @@ async function waitForClusterReadiness(
   namespace: string
 ): Promise<void> {
   let attempts = 0;
-  const maxAttempts = 10;
+  const maxAttempts = 15;
+  const waitTime = 3000;
 
   while (attempts < maxAttempts) {
     try {
+      // First check if namespace exists
+      await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "list_namespaces",
+            arguments: {},
+          },
+        },
+        HelmResponseSchema
+      );
+
+      // Then check if we can list services
       await client.request(
         {
           method: "tools/call",
@@ -34,9 +48,11 @@ async function waitForClusterReadiness(
     } catch (e) {
       attempts++;
       if (attempts === maxAttempts) {
-        throw new Error("Cluster not ready after maximum attempts");
+        throw new Error(
+          `Cluster not ready after ${maxAttempts} attempts. Last error: ${e.message}`
+        );
       }
-      await sleep(2000);
+      await sleep(waitTime);
     }
   }
 }
@@ -45,7 +61,7 @@ describe("helm operations", () => {
   let transport: StdioClientTransport;
   let client: Client;
   const testReleaseName = "test-nginx";
-  const testNamespace = "default";
+  const testNamespace = "default-helm";
 
   beforeEach(async () => {
     try {
@@ -104,6 +120,26 @@ describe("helm operations", () => {
   });
 
   test("helm chart lifecycle", async () => {
+    // Create namespace if it doesn't exist
+    try {
+      await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "create_namespace",
+            arguments: {
+              name: testNamespace,
+            },
+          },
+        },
+        HelmResponseSchema
+      );
+      // Wait for namespace to be ready
+      await sleep(2000);
+    } catch (e) {
+      // Ignore error if namespace already exists
+    }
+
     // Ensure cluster is ready before starting
     await waitForClusterReadiness(client, testNamespace);
 
