@@ -516,7 +516,7 @@ describe("kubernetes server operations", () => {
     "custom deployment configuration",
     async () => {
       const deploymentName = `custom-deploy-${generateRandomSHA()}`;
-      const namespace = "default";
+      const namespace = "default-custom-deploy";
 
       // Create a deployment with custom configuration
       const createDeploymentResult = await client.request(
