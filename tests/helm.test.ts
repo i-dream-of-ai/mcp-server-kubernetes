@@ -8,6 +8,39 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Helper function to wait for cluster readiness
+async function waitForClusterReadiness(
+  client: Client,
+  namespace: string
+): Promise<void> {
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  while (attempts < maxAttempts) {
+    try {
+      await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "list_services",
+            arguments: {
+              namespace: namespace,
+            },
+          },
+        },
+        HelmResponseSchema
+      );
+      return;
+    } catch (e) {
+      attempts++;
+      if (attempts === maxAttempts) {
+        throw new Error("Cluster not ready after maximum attempts");
+      }
+      await sleep(2000);
+    }
+  }
+}
+
 describe("helm operations", () => {
   let transport: StdioClientTransport;
   let client: Client;
@@ -132,8 +165,11 @@ describe("helm operations", () => {
   }, 30000); // Increase timeout to 30s for chart installation
 
   test("upgrade helm chart values", async () => {
+    // Ensure cluster is ready before starting
+    await waitForClusterReadiness(client, testNamespace);
+
     // First install the chart
-    await client.request(
+    const installResult = await client.request(
       {
         method: "tools/call",
         params: {
@@ -164,7 +200,38 @@ describe("helm operations", () => {
       HelmResponseSchema
     );
 
-    await sleep(5000);
+    expect(installResult.content[0].type).toBe("text");
+    const installResponse = JSON.parse(installResult.content[0].text);
+    expect(installResponse.status).toBe("installed");
+
+    // Wait for initial deployment to be ready
+    await sleep(10000);
+
+    // Verify initial deployment
+    const initialDeploymentResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "list_deployments",
+          arguments: {
+            namespace: testNamespace,
+          },
+        },
+      },
+      HelmResponseSchema
+    );
+
+    const initialDeployments = JSON.parse(
+      initialDeploymentResult.content[0].text
+    );
+    expect(
+      initialDeployments.deployments.some((d: any) =>
+        d.name.startsWith(testReleaseName)
+      )
+    ).toBe(true);
+
+    // Ensure cluster is ready before upgrade
+    await waitForClusterReadiness(client, testNamespace);
 
     // Then upgrade it with new values
     const upgradeResult = await client.request(
@@ -193,7 +260,7 @@ describe("helm operations", () => {
     const result = JSON.parse(upgradeResult.content[0].text);
     expect(result.status).toBe("upgraded");
 
-    // Wait for the upgrade to take effect
+    // Wait longer for the upgrade to take effect
     await sleep(5000);
 
     // Verify the deployment was updated
@@ -217,7 +284,7 @@ describe("helm operations", () => {
 
     expect(nginxDeployment).toBeDefined();
     expect(nginxDeployment.replicas).toBe(2);
-  }, 60000); // Increase timeout to 60s for install + upgrade
+  }, 90000); // Increase timeout to 90s for the entire test
 
   test("uninstall helm chart", async () => {
     // First install the chart
