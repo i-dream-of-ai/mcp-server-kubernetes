@@ -66,16 +66,10 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 ## Features
 
 - [x] Connect to a Kubernetes cluster
-- [x] List all pods
-- [x] List all services
-- [x] List all deployments
-- [x] List all nodes
-- [x] Create a pod
-- [x] Delete a pod
-- [x] Describe a pod
-- [x] List all namespaces
-- [x] Create a namespace
-- [x] Create custom pod & deployment configs
+- [x] List all pods, services, deployments, nodes
+- [x] Create, describe, delete a pod
+- [x] List all namespaces, create a namespace
+- [x] Create custom pod & deployment configs, update deployment replicas
 - [x] Get logs from a pod for debugging (supports pods, deployments, jobs, and label selectors)
 - [x] Support Helm v3 for installing charts
   - Install charts with custom values
