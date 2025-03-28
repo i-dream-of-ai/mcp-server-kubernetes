@@ -1,14 +1,5 @@
 // Import required test frameworks and SDK components
-import {
-  expect,
-  test,
-  it,
-  describe,
-  beforeAll,
-  beforeEach,
-  afterEach,
-  vi,
-} from "vitest";
+import { expect, test, describe, beforeEach, afterEach } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ListToolsResponseSchema } from "../src/models/tool-models.js";
@@ -22,7 +13,7 @@ import {
   DeleteDeploymentResponseSchema,
   ListDeploymentsResponseSchema,
 } from "../src/models/response-schemas.js";
-
+import { ScaleDeploymentResponseSchema } from "../src/models/response-schemas.js";
 /**
  * Utility function to create a promise that resolves after specified milliseconds
  * Useful for waiting between operations or ensuring async operations complete
@@ -576,6 +567,26 @@ describe("kubernetes server operations", () => {
         expect(
           deployments.deployments.some((d: any) => d.name === deploymentName)
         ).toBe(true);
+
+        const scaleDeploymentResult = await client.request(
+          {
+            method: "tools/call",
+            params: {
+              name: "scale_deployment",
+              arguments: {
+                name: deploymentName,
+                namespace: "default",
+                replicas: 2,
+              },
+            },
+          },
+          ScaleDeploymentResponseSchema
+        );
+
+        expect(scaleDeploymentResult.content[0].success).toBe(true);
+        expect(scaleDeploymentResult.content[0].message).toContain(
+          `Scaled deployment ${deploymentName} to 2 replicas`
+        );
 
         // Cleanup
         await client.request(
