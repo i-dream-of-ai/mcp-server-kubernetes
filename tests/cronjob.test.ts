@@ -1,11 +1,4 @@
-import {
-  expect,
-  test,
-  describe,
-  beforeEach,
-  afterEach,
-  vi,
-} from "vitest";
+import { expect, test, describe, beforeEach, afterEach, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import {
@@ -14,6 +7,7 @@ import {
   DescribeCronJobResponseSchema,
   ListJobsResponseSchema,
   GetJobLogsResponseSchema,
+  CreateNamespaceResponseSchema,
 } from "../src/models/response-schemas.js";
 import { KubernetesManager } from "../src/utils/kubernetes-manager.js";
 
@@ -40,7 +34,7 @@ describe("kubernetes cronjob operations", () => {
   let client: Client;
   let testNamespace: string;
   const NAMESPACE_PREFIX = "test-cronjob-ns";
-  
+
   /**
    * Set up before each test:
    * - Creates a new StdioClientTransport instance
@@ -65,15 +59,15 @@ describe("kubernetes cronjob operations", () => {
           capabilities: {},
         }
       );
-      
+
       await client.connect(transport);
       // Wait for connection to be established
       await sleep(1000);
-      
+
       // Create a unique test namespace for test isolation
       testNamespace = `${NAMESPACE_PREFIX}-${generateRandomId()}`;
       console.log(`Creating test namespace: ${testNamespace}`);
-      
+
       await client.request(
         {
           method: "tools/call",
@@ -83,12 +77,12 @@ describe("kubernetes cronjob operations", () => {
               name: testNamespace,
             },
           },
-        }
+        },
+        CreateNamespaceResponseSchema
       );
-      
+
       // Wait for namespace to be fully created
       await sleep(2000);
-      
     } catch (e) {
       console.error("Error in beforeEach:", e);
       throw e;
@@ -106,7 +100,7 @@ describe("kubernetes cronjob operations", () => {
       console.log(`Cleaning up test namespace: ${testNamespace}`);
       const k8sManager = new KubernetesManager();
       await k8sManager.getCoreApi().deleteNamespace(testNamespace);
-      
+
       // Close client connection
       await transport.close();
       await sleep(1000);
@@ -147,7 +141,7 @@ describe("kubernetes cronjob operations", () => {
     "cronjob lifecycle management",
     async () => {
       const cronJobName = `test-cronjob-${generateRandomId()}`;
-      
+
       // Step 1: Create a new CronJob
       console.log(`Creating CronJob: ${cronJobName}`);
       const createResult = await client.request(
@@ -167,14 +161,14 @@ describe("kubernetes cronjob operations", () => {
         },
         CreateCronJobResponseSchema
       );
-      
+
       // Verify creation response
       expect(createResult.content[0].type).toBe("text");
       const createResponse = JSON.parse(createResult.content[0].text);
       expect(createResponse.cronJobName).toBe(cronJobName);
       expect(createResponse.schedule).toBe("*/5 * * * *");
       expect(createResponse.status).toBe("created");
-      
+
       // Wait for CronJob to be fully created
       await sleep(3000);
 
@@ -191,10 +185,10 @@ describe("kubernetes cronjob operations", () => {
         },
         ListCronJobsResponseSchema
       );
-      
+
       const cronJobs = JSON.parse(listResult.content[0].text);
       expect(cronJobs.cronjobs).toBeDefined();
-      
+
       // Find our CronJob in the list
       const createdCronJob = cronJobs.cronjobs.find(
         (cj: any) => cj.name === cronJobName
@@ -217,7 +211,7 @@ describe("kubernetes cronjob operations", () => {
         },
         DescribeCronJobResponseSchema
       );
-      
+
       expect(describeResult.content[0].type).toBe("text");
       const cronJobDetails = JSON.parse(describeResult.content[0].text);
       expect(cronJobDetails.name).toBe(cronJobName);
@@ -225,7 +219,7 @@ describe("kubernetes cronjob operations", () => {
       expect(cronJobDetails.schedule).toBe("*/5 * * * *");
       expect(cronJobDetails.suspend).toBe(true);
       expect(cronJobDetails.jobTemplate.image).toBe("busybox");
-      
+
       // Step 4: List Jobs (should be empty since CronJob is suspended)
       const listJobsResult = await client.request(
         {
@@ -240,16 +234,16 @@ describe("kubernetes cronjob operations", () => {
         },
         ListJobsResponseSchema
       );
-      
+
       expect(listJobsResult.content[0].type).toBe("text");
       const jobs = JSON.parse(listJobsResult.content[0].text);
       expect(jobs.jobs).toBeDefined();
       expect(Array.isArray(jobs.jobs)).toBe(true);
       // Should be empty since we suspended the CronJob
       expect(jobs.jobs.length).toBe(0);
-      
+
       // No need to test get_job_logs since we don't have any jobs in this controlled test
-      
+
       // We should rely on the cleanup in afterEach to remove all resources
     },
     { timeout: 60000 } // 60 second timeout

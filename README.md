@@ -87,6 +87,7 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 - [x] kubectl explain and kubectl api-resources support
 - [x] Get Kubernetes events from the cluster
 - [x] Port forward to a pod or service
+- [x] Create, list, and decribe cronjobs
 
 ## Local Development
 
