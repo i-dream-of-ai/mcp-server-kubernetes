@@ -58,6 +58,26 @@ export const GetEventsResponseSchema = z.object({
   content: z.array(ToolResponseContent),
 });
 
+export const ListCronJobsResponseSchema = z.object({
+  content: z.array(ToolResponseContent),
+});
+
+export const CreateCronJobResponseSchema = z.object({
+  content: z.array(ToolResponseContent),
+});
+
+export const DescribeCronJobResponseSchema = z.object({
+  content: z.array(ToolResponseContent),
+});
+
+export const ListJobsResponseSchema = z.object({
+  content: z.array(ToolResponseContent),
+});
+
+export const GetJobLogsResponseSchema = z.object({
+  content: z.array(ToolResponseContent),
+});
+
 export const PortForwardResponseSchema = z.object({
   content: z.array(
     z.object({
@@ -66,3 +86,4 @@ export const PortForwardResponseSchema = z.object({
     })
   ),
 });
+

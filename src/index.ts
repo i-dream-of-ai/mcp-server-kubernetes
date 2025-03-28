@@ -8,6 +8,10 @@ import {
   listDeployments,
   listDeploymentsSchema,
 } from "./tools/list_deployments.js";
+import { listCronJobs, listCronJobsSchema } from "./tools/list_cronjobs.js";
+import { describeCronJob, describeCronJobSchema } from "./tools/describe_cronjob.js";
+import { listJobs, listJobsSchema } from "./tools/list_jobs.js";
+import { getJobLogs, getJobLogsSchema } from "./tools/get_job_logs.js";
 import {
   installHelmChart,
   installHelmChartSchema,
@@ -27,6 +31,7 @@ import {
   createNamespaceSchema,
 } from "./tools/create_namespace.js";
 import { createPod, createPodSchema } from "./tools/create_pod.js";
+import { createCronJob, createCronJobSchema } from "./tools/create_cronjob.js";
 import { deletePod, deletePodSchema } from "./tools/delete_pod.js";
 import { describePod, describePodSchema } from "./tools/describe_pod.js";
 import { getLogs, getLogsSchema } from "./tools/get_logs.js";
@@ -78,15 +83,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       createDeploymentSchema,
       createNamespaceSchema,
       createPodSchema,
+      createCronJobSchema,
       deletePodSchema,
+      describeCronJobSchema,
       describePodSchema,
       describeDeploymentSchema,
       explainResourceSchema,
       getEventsSchema,
+      getJobLogsSchema,
       getLogsSchema,
       installHelmChartSchema,
       listApiResourcesSchema,
+      listCronJobsSchema,
       listDeploymentsSchema,
+      listJobsSchema,
       listNamespacesSchema,
       listNodesSchema,
       listPodsSchema,
@@ -144,6 +154,20 @@ server.setRequestHandler(
               namespace: string;
               template: string;
               command?: string[];
+            }
+          );
+        }
+
+        case "create_cronjob": {
+          return await createCronJob(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+              schedule: string;
+              image: string;
+              command?: string[];
+              suspend?: boolean;
             }
           );
         }
@@ -269,6 +293,45 @@ server.setRequestHandler(
           return await listServices(
             k8sManager,
             input as { namespace?: string }
+          );
+        }
+
+        case "list_cronjobs": {
+          return await listCronJobs(
+            k8sManager,
+            input as { namespace?: string }
+          );
+        }
+
+        case "describe_cronjob": {
+          return await describeCronJob(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+            }
+          );
+        }
+
+        case "list_jobs": {
+          return await listJobs(
+            k8sManager,
+            input as {
+              namespace: string;
+              cronJobName?: string;
+            }
+          );
+        }
+
+        case "get_job_logs": {
+          return await getJobLogs(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+              tail?: number;
+              timestamps?: boolean;
+            }
           );
         }
 
