@@ -3,15 +3,16 @@ import * as k8s from "@kubernetes/client-node";
 
 export const listJobsSchema = {
   name: "list_jobs",
-  description: "List Jobs in a namespace, optionally filtered by a CronJob parent",
+  description:
+    "List Jobs in a namespace, optionally filtered by a CronJob parent",
   inputSchema: {
     type: "object",
     properties: {
       namespace: { type: "string", default: "default" },
-      cronJobName: { 
-        type: "string", 
+      cronJobName: {
+        type: "string",
         description: "Optional: Filter jobs created by a specific CronJob",
-        optional: true 
+        optional: true,
       },
     },
     required: ["namespace"],
@@ -20,7 +21,7 @@ export const listJobsSchema = {
 
 export async function listJobs(
   k8sManager: KubernetesManager,
-  input: { 
+  input: {
     namespace: string;
     cronJobName?: string;
   }
@@ -28,7 +29,7 @@ export async function listJobs(
   try {
     const namespace = input.namespace;
     const batchV1Api = k8sManager.getBatchApi();
-    
+
     // Set up label selector if cronJobName is provided
     let labelSelector;
     if (input.cronJobName) {
@@ -47,13 +48,17 @@ export async function listJobs(
 
     // Sort jobs by creation time (newest first)
     const jobs = body.items.sort((a, b) => {
-      const aTime = a.metadata?.creationTimestamp || "";
-      const bTime = b.metadata?.creationTimestamp || "";
-      return bTime.localeCompare(aTime);
+      const aTime = a.metadata?.creationTimestamp
+        ? new Date(a.metadata.creationTimestamp)
+        : new Date(0);
+      const bTime = b.metadata?.creationTimestamp
+        ? new Date(b.metadata.creationTimestamp)
+        : new Date(0);
+      return bTime.getTime() - aTime.getTime();
     });
 
     // Transform job data to a more readable format
-    const formattedJobs = jobs.map(job => ({
+    const formattedJobs = jobs.map((job) => ({
       name: job.metadata?.name || "",
       namespace: job.metadata?.namespace || "",
       creationTime: job.metadata?.creationTimestamp || "",
@@ -67,7 +72,7 @@ export async function listJobs(
         completionTime: job.status?.completionTime || null,
         startTime: job.status?.startTime || null,
         conditions: job.status?.conditions || [],
-      }
+      },
     }));
 
     return {

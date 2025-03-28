@@ -1,9 +1,9 @@
 import { KubernetesManager } from "../types.js";
-import * as k8s from "@kubernetes/client-node";
 
 export const describeCronJobSchema = {
   name: "describe_cronjob",
-  description: "Get detailed information about a Kubernetes CronJob including recent job history",
+  description:
+    "Get detailed information about a Kubernetes CronJob including recent job history",
   inputSchema: {
     type: "object",
     properties: {
@@ -40,16 +40,20 @@ export async function describeCronJob(
       undefined, // fieldSelector
       labelSelector
     );
-    
+
     // Sort jobs by creation time (newest first)
     const jobs = jobsResponse.body.items.sort((a, b) => {
-      const aTime = a.metadata?.creationTimestamp || "";
-      const bTime = b.metadata?.creationTimestamp || "";
-      return bTime.localeCompare(aTime);
+      const aTime = a.metadata?.creationTimestamp
+        ? new Date(a.metadata.creationTimestamp)
+        : new Date(0);
+      const bTime = b.metadata?.creationTimestamp
+        ? new Date(b.metadata.creationTimestamp)
+        : new Date(0);
+      return bTime.getTime() - aTime.getTime();
     });
 
     // Limit to 5 most recent jobs
-    const recentJobs = jobs.slice(0, 5).map(job => ({
+    const recentJobs = jobs.slice(0, 5).map((job) => ({
       name: job.metadata?.name || "",
       creationTime: job.metadata?.creationTimestamp || "",
       status: {
@@ -57,7 +61,7 @@ export async function describeCronJob(
         succeeded: job.status?.succeeded || 0,
         failed: job.status?.failed || 0,
         completionTime: job.status?.completionTime || null,
-      }
+      },
     }));
 
     // Format the response with CronJob details and recent jobs
@@ -72,10 +76,15 @@ export async function describeCronJob(
       creationTimestamp: cronJob.metadata?.creationTimestamp || "",
       recentJobs: recentJobs,
       jobTemplate: {
-        image: cronJob.spec?.jobTemplate?.spec?.template?.spec?.containers?.[0]?.image || "",
-        command: cronJob.spec?.jobTemplate?.spec?.template?.spec?.containers?.[0]?.command || [],
-        restartPolicy: cronJob.spec?.jobTemplate?.spec?.template?.spec?.restartPolicy || "",
-      }
+        image:
+          cronJob.spec?.jobTemplate?.spec?.template?.spec?.containers?.[0]
+            ?.image || "",
+        command:
+          cronJob.spec?.jobTemplate?.spec?.template?.spec?.containers?.[0]
+            ?.command || [],
+        restartPolicy:
+          cronJob.spec?.jobTemplate?.spec?.template?.spec?.restartPolicy || "",
+      },
     };
 
     return {
