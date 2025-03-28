@@ -7,23 +7,23 @@ export const getJobLogsSchema = {
   inputSchema: {
     type: "object",
     properties: {
-      name: { 
+      name: {
         type: "string",
-        description: "Name of the Job to get logs from" 
+        description: "Name of the Job to get logs from",
       },
-      namespace: { 
-        type: "string", 
-        default: "default" 
+      namespace: {
+        type: "string",
+        default: "default",
       },
-      tail: { 
-        type: "number", 
+      tail: {
+        type: "number",
         description: "Number of lines to return from the end of the logs",
-        optional: true 
+        optional: true,
       },
-      timestamps: { 
-        type: "boolean", 
+      timestamps: {
+        type: "boolean",
         description: "Include timestamps in the logs",
-        optional: true 
+        optional: true,
       },
     },
     required: ["name", "namespace"],
@@ -62,9 +62,13 @@ export async function getJobLogs(
         content: [
           {
             type: "text",
-            text: JSON.stringify({ 
-              message: `No pods found for job ${input.name}` 
-            }, null, 2),
+            text: JSON.stringify(
+              {
+                message: `No pods found for job ${input.name}`,
+              },
+              null,
+              2
+            ),
           },
         ],
       };
@@ -74,7 +78,7 @@ export async function getJobLogs(
     const podLogs = await Promise.all(
       podList.items.map(async (pod) => {
         const podName = pod.metadata?.name || "";
-        
+
         try {
           const logResponse = await coreApi.readNamespacedPodLog(
             podName,
@@ -84,10 +88,10 @@ export async function getJobLogs(
             input.timestamps || false, // timestamps
             undefined, // sinceSeconds
             undefined, // sinceTime
-            input.tail || undefined, // tailLines
+            (input.tail != undefined ? true : true) || undefined, // tailLines
             undefined // pretty
           );
-          
+
           return {
             podName,
             logs: logResponse.body,
@@ -110,12 +114,12 @@ export async function getJobLogs(
         {
           type: "text",
           text: JSON.stringify(
-            { 
+            {
               job: input.name,
               namespace: input.namespace,
-              pods: podLogs
-            }, 
-            null, 
+              pods: podLogs,
+            },
+            null,
             2
           ),
         },
