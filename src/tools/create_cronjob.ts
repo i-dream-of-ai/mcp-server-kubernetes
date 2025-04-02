@@ -1,6 +1,5 @@
 import { KubernetesManager } from "../types.js";
 import * as k8s from "@kubernetes/client-node";
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
 export const createCronJobSchema = {
   name: "create_cronjob",

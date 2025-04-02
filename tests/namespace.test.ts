@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeEach, afterEach } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { CreateNamespaceResponseSchema } from "../src/models/response-schemas";
+import { CreateNamespaceResponseSchema, DeleteNamespaceResponseSchema } from "../src/models/response-schemas";
 import { KubernetesManager } from "../src/utils/kubernetes-manager.js";
 
 async function sleep(ms: number): Promise<void> {
@@ -83,4 +83,74 @@ describe("kubernetes server operations", () => {
     const k8sManager = new KubernetesManager();
     await k8sManager.getCoreApi().deleteNamespace(TEST_NAMESPACE_NAME);
   });
+
+  test("delete namespace", async () => {
+    const TEST_NAMESPACE_NAME = "test-namespace-mcp-server2";
+    // Create namespace before test
+    const k8sManager = new KubernetesManager();
+    const result = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "create_namespace",
+          arguments: {
+            name: TEST_NAMESPACE_NAME,
+          },
+        },
+      },
+      CreateNamespaceResponseSchema
+    );
+    expect(result).toEqual({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              podName: TEST_NAMESPACE_NAME,
+              status: "created",
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    });
+    // Wait for namespace to be fully created
+    await sleep(2000);
+    const result2 = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "delete_namespace",
+          arguments: {
+            name: TEST_NAMESPACE_NAME,
+          },
+        },
+      },
+      DeleteNamespaceResponseSchema,
+    );
+    expect(result2).toEqual({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              success: true,
+              status: "deleted",
+            },
+            null,
+            2
+          ),
+        }
+      ]
+    })
+
+    // verify namespace is deleted
+    const namespace = await k8sManager.getCoreApi().readNamespace(TEST_NAMESPACE_NAME);
+    if (namespace.body) {
+      expect(namespace.body.status?.phase).toBe("Terminating");
+    } else {
+      expect(namespace.body).toBeUndefined();
+    }
+  })
 });

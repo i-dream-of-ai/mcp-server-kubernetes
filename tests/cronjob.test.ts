@@ -8,6 +8,7 @@ import {
   ListJobsResponseSchema,
   GetJobLogsResponseSchema,
   CreateNamespaceResponseSchema,
+  DeleteCronJobResponseSchema,
 } from "../src/models/response-schemas.js";
 import { KubernetesManager } from "../src/utils/kubernetes-manager.js";
 
@@ -242,6 +243,24 @@ describe("kubernetes cronjob operations", () => {
       // Should be empty since we suspended the CronJob
       expect(jobs.jobs.length).toBe(0);
 
+      const deletecronjobresult = await client.request(
+        {
+          method : "tools/call",
+          params : {
+            name : "delete_cronjob",
+            arguments  : {
+              name : cronJobName,
+              namespace : testNamespace,
+            },
+          },
+        },
+        DeleteCronJobResponseSchema
+      );
+
+      expect(deletecronjobresult.content[0].success).toBe(true)
+      expect(deletecronjobresult.content[0].message).toContain(`Deleted cronjob ${cronJobName} in namespace ${testNamespace}.`)
+
+      
       // No need to test get_job_logs since we don't have any jobs in this controlled test
 
       // We should rely on the cleanup in afterEach to remove all resources
