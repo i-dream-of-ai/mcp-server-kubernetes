@@ -14,8 +14,8 @@ async function waitForClusterReadiness(
   namespace: string
 ): Promise<void> {
   let attempts = 0;
-  const maxAttempts = 15;
-  const waitTime = 3000;
+  const maxAttempts = 20;
+  const waitTime = 4000;
 
   while (attempts < maxAttempts) {
     try {
@@ -290,7 +290,7 @@ describe("helm operations", () => {
     expect(installResponse.status).toBe("installed");
 
     // Wait for initial deployment to be ready
-    await sleep(10000);
+    await sleep(20000);
 
     // Verify initial deployment
     const initialDeploymentResult = await client.request(
@@ -345,7 +345,7 @@ describe("helm operations", () => {
     expect(upgradeResponse.status).toBe("upgraded");
 
     // Wait for upgrade to take effect
-    await sleep(15000);
+    await sleep(30000);
 
     // Verify the deployment was updated
     const deploymentResult = await client.request(
@@ -391,7 +391,7 @@ describe("helm operations", () => {
     expect(uninstallResponse.status).toBe("uninstalled");
 
     // Wait for resources to be cleaned up
-    await sleep(10000);
+    await sleep(20000);
 
     // Verify the deployment is gone
     const finalDeploymentResult = await client.request(
@@ -413,5 +413,5 @@ describe("helm operations", () => {
         (d: any) => !d.name.startsWith(testReleaseName)
       )
     ).toBe(true);
-  }, 120000); // Increase timeout to 120s for the entire lifecycle test
+  }, 180000); // Increase timeout to 180s for the entire lifecycle test
 });

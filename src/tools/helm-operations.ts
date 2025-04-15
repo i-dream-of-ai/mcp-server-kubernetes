@@ -90,7 +90,11 @@ export const uninstallHelmChartSchema = {
 
 const executeHelmCommand = (command: string): string => {
   try {
-    return execSync(command, { encoding: "utf8" });
+    // Add a generous timeout of 60 seconds for Helm operations
+    return execSync(command, { 
+      encoding: "utf8",
+      timeout: 60000 // 60 seconds timeout
+    });
   } catch (error: any) {
     throw new Error(`Helm command failed: ${error.message}`);
   }
