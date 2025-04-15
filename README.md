@@ -70,6 +70,7 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 - [x] Create, describe, delete a pod
 - [x] List all namespaces, create a namespace
 - [x] Create custom pod & deployment configs, update deployment replicas
+- [x] Create services
 - [x] Get logs from a pod for debugging (supports pods, deployments, jobs, and label selectors)
 - [x] Support Helm v3 for installing charts
   - Install charts with custom values
@@ -82,7 +83,7 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 - [x] Get Kubernetes events from the cluster
 - [x] Port forward to a pod or service
 - [x] Create, list, and decribe cronjobs
-- [x] Non-destructive mode for read-only access to clusters
+- [x] Non-destructive mode for read and create/update-only access to clusters
 
 ## Local Development
 

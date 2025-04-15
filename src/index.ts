@@ -67,6 +67,7 @@ import {
   describeDeployment,
   describeDeploymentSchema,
 } from "./tools/describe_deployment.js";
+import { updateDeployment, updateDeploymentSchema } from "./tools/update_deployment.js";
 import { createConfigMap, CreateConfigMapSchema } from "./tools/create_configmap.js";
 import { createService, createServiceSchema } from "./tools/create_service.js";
 import { listContexts, listContextsSchema } from "./tools/list_contexts.js";
@@ -129,6 +130,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     listPodsSchema,
     listServicesSchema,
     uninstallHelmChartSchema,
+    updateDeploymentSchema,
     upgradeHelmChartSchema,
     PortForwardSchema,
     StopPortForwardSchema,
@@ -477,7 +479,19 @@ server.setRequestHandler(
             }
           );
         }
-
+        case "update_deployment": {
+          return await updateDeployment(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+              template: string;
+              containerName?: string;
+              replicas?: number;
+              customConfig?: any;
+            }
+          );
+        }
         case "describe_deployment": {
           return await describeDeployment(
             k8sManager,
