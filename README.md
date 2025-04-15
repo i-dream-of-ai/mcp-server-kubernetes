@@ -82,6 +82,7 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 - [x] Get Kubernetes events from the cluster
 - [x] Port forward to a pod or service
 - [x] Create, list, and decribe cronjobs
+- [x] Non-destructive mode for read-only access to clusters
 
 ## Local Development
 
@@ -143,7 +144,9 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details.
 
 ## Advanced
 
-For more advanced information like using SSE transport, see the [ADVANCED_README.md](ADVANCED_README.md).
+### Additional Advanced Features
+
+For more advanced information like using SSE transport, Non-destructive mode with `ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS`, see the [ADVANCED_README.md](ADVANCED_README.md).
 
 ## Architecture
 
