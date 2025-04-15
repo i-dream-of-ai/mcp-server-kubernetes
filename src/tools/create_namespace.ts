@@ -43,7 +43,7 @@ export async function createNamespace(
           type: "text",
           text: JSON.stringify(
             {
-              podName: response.body.metadata!.name!,
+              namespaceName: response.body.metadata!.name!,
               status: "created",
             },
             null,

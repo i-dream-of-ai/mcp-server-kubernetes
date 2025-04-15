@@ -69,7 +69,7 @@ describe("kubernetes server operations", () => {
           type: "text",
           text: JSON.stringify(
             {
-              podName: TEST_NAMESPACE_NAME,
+              namespaceName: TEST_NAMESPACE_NAME,
               status: "created",
             },
             null,
@@ -106,7 +106,7 @@ describe("kubernetes server operations", () => {
           type: "text",
           text: JSON.stringify(
             {
-              podName: TEST_NAMESPACE_NAME,
+              namespaceName: TEST_NAMESPACE_NAME,
               status: "created",
             },
             null,

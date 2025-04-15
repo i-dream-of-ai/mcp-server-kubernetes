@@ -28,6 +28,7 @@ export const installHelmChartSchema = {
       values: {
         type: "object",
         description: "Chart values",
+        properties: {},
         additionalProperties: true,
       },
     },
@@ -60,6 +61,7 @@ export const upgradeHelmChartSchema = {
       values: {
         type: "object",
         description: "Chart values",
+        properties: {},
         additionalProperties: true,
       },
     },
@@ -115,7 +117,7 @@ export async function installHelmChart(params: HelmInstallOperation): Promise<{ 
     if (params.values) {
       const valuesFile = writeValuesFile(params.name, params.values);
       command += ` -f ${valuesFile}`;
-      
+
       try {
         executeHelmCommand(command);
       } finally {
@@ -159,7 +161,7 @@ export async function upgradeHelmChart(params: HelmUpgradeOperation): Promise<{ 
     if (params.values) {
       const valuesFile = writeValuesFile(params.name, params.values);
       command += ` -f ${valuesFile}`;
-      
+
       try {
         executeHelmCommand(command);
       } finally {
