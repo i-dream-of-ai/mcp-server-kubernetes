@@ -30,22 +30,6 @@ https://github.com/user-attachments/assets/f25f8f4e-4d04-479b-9ae0-5dac452dd2ed
 }
 ```
 
-For read-only access (non-destructive mode), you can use:
-
-```json
-{
-  "mcpServers": {
-    "kubernetes-readonly": {
-      "command": "npx",
-      "args": ["mcp-server-kubernetes"],
-      "env": {
-        "ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS": "true"
-      }
-    }
-  }
-}
-```
-
 The server will automatically connect to your current kubectl context. Make sure you have:
 
 1. kubectl installed and in your PATH
@@ -63,12 +47,6 @@ If you have errors open up a standard terminal and run `kubectl get pods` to see
 
 ```shell
 npx mcp-chat --server "npx mcp-server-kubernetes"
-```
-
-For read-only access (non-destructive mode):
-
-```shell
-ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS=true npx mcp-chat --server "npx mcp-server-kubernetes"
 ```
 
 Alternatively, pass it your existing Claude Desktop configuration file from above (Linux should pass the correct path to config):
@@ -149,13 +127,6 @@ npx @modelcontextprotocol/inspector node dist/index.js
     "mcp-server-kubernetes": {
       "command": "node",
       "args": ["/path/to/your/mcp-server-kubernetes/dist/index.js"]
-    },
-    "mcp-server-kubernetes-readonly": {
-      "command": "node",
-      "args": ["/path/to/your/mcp-server-kubernetes/dist/index.js"],
-      "env": {
-        "ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS": "true"
-      }
     }
   }
 }
@@ -167,47 +138,15 @@ npx @modelcontextprotocol/inspector node dist/index.js
 npm run chat
 ```
 
-Or for read-only mode:
-
-```bash
-ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS=true npm run chat
-```
-
 ## Contributing
 
 See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details.
 
 ## Advanced
 
-### Non-Destructive Mode
-
-You can run the server in a non-destructive mode that disables all destructive operations (delete pods, delete deployments, delete namespaces, etc.) by setting the `ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS` environment variable to `true`:
-
-```shell
-ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS=true npx mcp-server-kubernetes
-```
-
-This feature is particularly useful for:
-
-- **Production environments**: Prevent accidental deletion or modification of critical resources
-- **Shared clusters**: Allow multiple users to safely explore the cluster without risk of disruption
-- **Educational settings**: Provide a safe environment for learning Kubernetes operations
-- **Demonstration purposes**: Show cluster state and resources without modification risk
-
-When enabled, the following destructive operations are disabled:
-
-- `delete_pod`: Deleting pods
-- `delete_deployment`: Deleting deployments
-- `delete_namespace`: Deleting namespaces
-- `uninstall_helm_chart`: Uninstalling Helm charts
-- `delete_cronjob`: Deleting cronjobs
-- `cleanup`: Cleaning up resources
-
-All read-only operations like listing resources, describing pods, getting logs, etc. remain fully functional.
-
 ### Additional Advanced Features
 
-For more advanced information like using SSE transport, see the [ADVANCED_README.md](ADVANCED_README.md).
+For more advanced information like using SSE transport, Non-destructive mode with `ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS`, see the [ADVANCED_README.md](ADVANCED_README.md).
 
 ## Architecture
 
