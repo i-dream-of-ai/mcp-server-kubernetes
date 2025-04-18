@@ -67,10 +67,11 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 
 - [x] Connect to a Kubernetes cluster
 - [x] List all pods, services, deployments, nodes
+- [x] Describe nodes
 - [x] Create, describe, delete a pod
 - [x] List all namespaces, create a namespace
 - [x] Create custom pod & deployment configs, update deployment replicas
-- [x] Create services
+- [x] Create, describe, delete, update a service
 - [x] Get logs from a pod for debugging (supports pods, deployments, jobs, and label selectors)
 - [x] Support Helm v3 for installing charts
   - Install charts with custom values
@@ -86,6 +87,8 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 - [x] Non-destructive mode for read and create/update-only access to clusters
 
 ## Local Development
+
+Make sure that you have [bun installed](https://bun.sh/docs/installation). Clone the repo & install dependencies:
 
 ```bash
 git clone https://github.com/Flux159/mcp-server-kubernetes.git
@@ -136,7 +139,7 @@ npx @modelcontextprotocol/inspector node dist/index.js
 6. Local testing with [mcp-chat](https://github.com/Flux159/mcp-chat)
 
 ```bash
-npm run chat
+bun run chat
 ```
 
 ## Contributing

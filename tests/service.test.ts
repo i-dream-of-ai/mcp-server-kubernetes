@@ -25,6 +25,36 @@ interface ServiceResponse {
   status: string;
 }
 
+// Interface for list services response
+interface ListServicesResponse {
+  services: Array<{
+    name: string;
+    namespace: string;
+    type: string;
+    clusterIP: string;
+    ports: Array<any>;
+    createdAt: string;
+  }>;
+}
+
+// Interface for update service response
+interface UpdateServiceResponse {
+  message: string;
+  service: {
+    name: string;
+    namespace: string;
+    type: string;
+    clusterIP: string;
+    ports: Array<any>;
+  };
+}
+
+// Interface for delete service response
+interface DeleteServiceResponse {
+  success: boolean;
+  status: string;
+}
+
 // Utility function: Sleep for a specified number of milliseconds
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,6 +76,36 @@ function parseServiceResponse(responseText: string): ServiceResponse | null {
     return JSON.parse(responseText);
   } catch (error) {
     console.error("Failed to parse service response:", error);
+    return null;
+  }
+}
+
+// Utility function: Parse list services response
+function parseListServicesResponse(responseText: string): ListServicesResponse | null {
+  try {
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error("Failed to parse list services response:", error);
+    return null;
+  }
+}
+
+// Utility function: Parse update service response
+function parseUpdateServiceResponse(responseText: string): UpdateServiceResponse | null {
+  try {
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error("Failed to parse update service response:", error);
+    return null;
+  }
+}
+
+// Utility function: Parse delete service response
+function parseDeleteServiceResponse(responseText: string): DeleteServiceResponse | null {
+  try {
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error("Failed to parse delete service response:", error);
     return null;
   }
 }
@@ -129,111 +189,347 @@ describe("test kubernetes service", () => {
     }
   });
 
-  // Test case: Verify creation of ClusterIP service
-  test("verify creation of ClusterIP service", async () => {
-    // Define test port configuration
-    const testPorts = [
-      {
-        port: 80,
-        targetPort: 8080,
-        protocol: "TCP",
-        name: "http"
-      }
-    ];
-
-    // Define test selector
-    const testSelector = {
-      app: "test-app",
-      tier: "backend"
-    };
-
-    // Send request to create the service
-    const serviceResponse = await client.request<any>(
+  // Test case: Create ClusterIP service
+  test("create ClusterIP service", async () => {
+    // Define test data
+    const testPorts = [{ port: 80, targetPort: 8080, protocol: "TCP", name: "http" }];
+    const testSelector = { app: "test-app", tier: "backend" };
+    
+    // Create the service
+    const response = await client.request<any>(
       {
         method: "tools/call",
-        params: {
-          name: "create_service",
-          arguments: {
-            name: testServiceName,
-            namespace: testNamespace,
-            type: "ClusterIP",
-            selector: testSelector,
-            ports: testPorts,
-          },
+        params: { 
+          name: "create_service", 
+          arguments: { 
+            name: testServiceName, 
+            namespace: testNamespace, 
+            type: "ClusterIP", 
+            selector: testSelector, 
+            ports: testPorts 
+          } 
         },
       },
-      ServiceResponseSchema,
+      ServiceResponseSchema
     );
-
-    // Wait for the request to be processed
-    await sleep(2000);
-
-    // Parse the service response
-    const responseText = serviceResponse.content[0].text;
-    const parsedResponse = parseServiceResponse(responseText);
-
-    console.log("Service creation response:", parsedResponse);
-
-    // Verify that the response contains the expected data
+    await sleep(1000);
+    
+    // Verify response
+    const parsedResponse = parseServiceResponse(response.content[0].text)!;
+    console.log("ClusterIP service creation response:", parsedResponse);
+    
+    // Assert service properties
     expect(parsedResponse).not.toBeNull();
-    expect(parsedResponse?.serviceName).toBe(testServiceName);
-    expect(parsedResponse?.namespace).toBe(testNamespace);
-    expect(parsedResponse?.type).toBe("ClusterIP");
-    expect(parsedResponse?.status).toBe("created");
-
-    // Verify port configuration
-    expect(parsedResponse?.ports).toHaveLength(1);
-    expect(parsedResponse?.ports[0].port).toBe(80);
-    expect(parsedResponse?.ports[0].targetPort).toBe(8080);
+    expect(parsedResponse.serviceName).toBe(testServiceName);
+    expect(parsedResponse.namespace).toBe(testNamespace);
+    expect(parsedResponse.type).toBe("ClusterIP");
+    expect(parsedResponse.status).toBe("created");
+    
+    // Assert port configuration
+    expect(parsedResponse.ports).toHaveLength(1);
+    expect(parsedResponse.ports[0].port).toBe(80);
+    expect(parsedResponse.ports[0].targetPort).toBe(8080);
   });
 
-  // Test case: Verify creation of NodePort service
-  test("verify creation of NodePort service", async () => {
-    // Define test port configuration that includes nodePort
-    const testPorts = [
-      {
-        port: 80,
-        targetPort: 8080,
-        protocol: "TCP",
-        name: "http",
-        nodePort: 30080
-      }
-    ];
-
-    // Send request to create a NodePort service
-    const serviceResponse = await client.request<any>(
-      {
-        method: "tools/call",
-        params: {
-          name: "create_service",
-          arguments: {
-            name: `${testServiceName}-nodeport`,
-            namespace: testNamespace,
-            type: "NodePort",
-            ports: testPorts,
-          },
-        },
-      },
-      ServiceResponseSchema,
+  // Test case: List services
+  test("list services", async () => {
+    // Define test data
+    const testPorts = [{ port: 80, targetPort: 8080, protocol: "TCP", name: "http" }];
+    
+    // First create a service to list
+    const createResponse = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "create_service", 
+          arguments: { 
+            name: testServiceName, 
+            namespace: testNamespace, 
+            ports: testPorts
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
     );
-
-    // Wait for the request to be processed
-    await sleep(2000);
-
-    // Parse the service response
-    const responseText = serviceResponse.content[0].text;
-    const parsedResponse = parseServiceResponse(responseText);
-
-    console.log("NodePort service creation response:", parsedResponse);
-
-    // Verify that the response contains the expected data
+    await sleep(1000);
+    
+    // List the services
+    const response = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "list_services", 
+          arguments: { 
+            namespace: testNamespace 
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
+    );
+    
+    // Verify response
+    const parsedResponse = parseListServicesResponse(response.content[0].text)!;
+    console.log("Services list response:", parsedResponse);
+    
+    // Assert service is in the list
     expect(parsedResponse).not.toBeNull();
-    expect(parsedResponse?.type).toBe("NodePort");
-    expect(parsedResponse?.status).toBe("created");
+    expect(parsedResponse.services).toBeInstanceOf(Array);
+    
+    // Find our service in the list
+    const listedService = parsedResponse.services.find(svc => svc.name === testServiceName);
+    expect(listedService).toBeDefined();
+    expect(listedService?.namespace).toBe(testNamespace);
+  });
 
-    // Verify port configuration, including NodePort
-    expect(parsedResponse?.ports).toHaveLength(1);
-    expect(parsedResponse?.ports[0].nodePort).toBeDefined();
-    expect(parsedResponse?.ports[0].port).toBe(80);
+  // Test case: Describe service
+  test("describe service", async () => {
+    // Define test data
+    const testPorts = [{ port: 80, targetPort: 8080, protocol: "TCP", name: "http" }];
+    
+    // First create a service to describe
+    const createResponse = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "create_service", 
+          arguments: { 
+            name: testServiceName, 
+            namespace: testNamespace, 
+            ports: testPorts
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
+    );
+    await sleep(1000);
+    
+    // Describe the service
+    const response = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "describe_service", 
+          arguments: { 
+            name: testServiceName, 
+            namespace: testNamespace 
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
+    );
+    
+    // Verify response
+    const parsedResponse = JSON.parse(response.content[0].text);
+    console.log("Service details response:", parsedResponse);
+    
+    // Assert service details
+    expect(parsedResponse).not.toBeNull();
+    expect(parsedResponse.metadata.name).toBe(testServiceName);
+    expect(parsedResponse.metadata.namespace).toBe(testNamespace);
+    expect(parsedResponse.spec.ports).toHaveLength(1);
+    expect(parsedResponse.spec.ports[0].port).toBe(80);
+  });
+
+  // Test case: Update service
+  test("update service", async () => {
+    // Define test data
+    const initialPorts = [{ port: 80, targetPort: 8080, protocol: "TCP", name: "http" }];
+    const updatedPorts = [{ port: 90, targetPort: 9090, protocol: "TCP", name: "http-updated" }];
+    
+    // First create a service to update
+    const createResponse = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "create_service", 
+          arguments: { 
+            name: testServiceName, 
+            namespace: testNamespace, 
+            ports: initialPorts
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
+    );
+    await sleep(1000);
+    
+    // Update the service
+    const response = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "update_service", 
+          arguments: { 
+            name: testServiceName, 
+            namespace: testNamespace, 
+            ports: updatedPorts
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
+    );
+    await sleep(1000);
+    
+    // Verify response
+    const parsedResponse = parseUpdateServiceResponse(response.content[0].text)!;
+    console.log("Service update response:", parsedResponse);
+    
+    // Assert update was successful
+    expect(parsedResponse).not.toBeNull();
+    expect(parsedResponse.message).toBe("Service updated successfully");
+    expect(parsedResponse.service.name).toBe(testServiceName);
+    
+    // Verify updated properties
+    expect(parsedResponse.service.ports).toHaveLength(1);
+    expect(parsedResponse.service.ports[0].port).toBe(90);
+    expect(parsedResponse.service.ports[0].targetPort).toBe(9090);
+  });
+
+  // Test case: Delete service
+  test("delete service", async () => {
+    // Define test data
+    const testPorts = [{ port: 80, targetPort: 8080, protocol: "TCP", name: "http" }];
+    
+    // First create a service to delete
+    const createResponse = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "create_service", 
+          arguments: { 
+            name: testServiceName, 
+            namespace: testNamespace, 
+            ports: testPorts
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
+    );
+    await sleep(1000);
+    
+    // Delete the service
+    const response = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "delete_service", 
+          arguments: { 
+            name: testServiceName, 
+            namespace: testNamespace 
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
+    );
+    await sleep(1000);
+    
+    // Verify response
+    const parsedResponse = parseDeleteServiceResponse(response.content[0].text)!;
+    console.log("Service deletion response:", parsedResponse);
+    
+    // Assert deletion was successful
+    expect(parsedResponse).not.toBeNull();
+    expect(parsedResponse.success).toBe(true);
+    expect(parsedResponse.status).toBe("deleted");
+    
+    // List services to verify deletion
+    const listResponse = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "list_services", 
+          arguments: { 
+            namespace: testNamespace 
+          } 
+        } 
+      }, 
+      ServiceResponseSchema
+    );
+    
+    // Verify service is no longer in the list
+    const listResult = parseListServicesResponse(listResponse.content[0].text)!;
+    console.log("Services list after deletion:", listResult);
+    
+    // Assert service is not found
+    expect(listResult.services.find(svc => svc.name === testServiceName)).toBeUndefined();
+  });
+
+  // Test case: Create NodePort service
+  test("create NodePort service", async () => {
+    // Define test data
+    const testPorts = [{ port: 80, targetPort: 8080, protocol: "TCP", name: "http", nodePort: 30080 }];
+    
+    // Create the service
+    const response = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "create_service", 
+          arguments: { 
+            name: `${testServiceName}-nodeport`, 
+            namespace: testNamespace, 
+            type: "NodePort", 
+            ports: testPorts 
+          } 
+        } 
+      },
+      ServiceResponseSchema
+    );
+    await sleep(1000);
+    
+    // Verify response
+    const parsedResponse = parseServiceResponse(response.content[0].text)!;
+    console.log("NodePort service creation response:", parsedResponse);
+    
+    // Assert service properties
+    expect(parsedResponse).not.toBeNull();
+    expect(parsedResponse.serviceName).toBe(`${testServiceName}-nodeport`);
+    expect(parsedResponse.namespace).toBe(testNamespace);
+    expect(parsedResponse.type).toBe("NodePort");
+    expect(parsedResponse.status).toBe("created");
+    
+    // Assert port configuration
+    expect(parsedResponse.ports).toHaveLength(1);
+    expect(parsedResponse.ports[0].port).toBe(80);
+    expect(parsedResponse.ports[0].nodePort).toBe(30080);
+  });
+
+  // Test case: Create LoadBalancer service
+  test("create LoadBalancer service", async () => {
+    // Define test data
+    const testPorts = [{ port: 80, targetPort: 8080, protocol: "TCP", name: "http" }];
+    
+    // Create the service
+    const response = await client.request<any>(
+      { 
+        method: "tools/call", 
+        params: { 
+          name: "create_service", 
+          arguments: { 
+            name: `${testServiceName}-lb`, 
+            namespace: testNamespace, 
+            type: "LoadBalancer", 
+            ports: testPorts 
+          } 
+        } 
+      },
+      ServiceResponseSchema
+    );
+    await sleep(1000);
+    
+    // Verify response
+    const parsedResponse = parseServiceResponse(response.content[0].text)!;
+    console.log("LoadBalancer service creation response:", parsedResponse);
+    
+    // Assert service properties
+    expect(parsedResponse).not.toBeNull();
+    expect(parsedResponse.serviceName).toBe(`${testServiceName}-lb`);
+    expect(parsedResponse.namespace).toBe(testNamespace);
+    expect(parsedResponse.type).toBe("LoadBalancer");
+    expect(parsedResponse.status).toBe("created");
+    
+    // Assert structure
+    expect(parsedResponse.clusterIP).toBeDefined();
+    expect(parsedResponse.ports).toHaveLength(1);
   });
 });

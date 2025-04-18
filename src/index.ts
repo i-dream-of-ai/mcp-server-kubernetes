@@ -9,9 +9,13 @@ import {
   listDeploymentsSchema,
 } from "./tools/list_deployments.js";
 import { listCronJobs, listCronJobsSchema } from "./tools/list_cronjobs.js";
-import { describeCronJob, describeCronJobSchema } from "./tools/describe_cronjob.js";
+import {
+  describeCronJob,
+  describeCronJobSchema,
+} from "./tools/describe_cronjob.js";
 import { listJobs, listJobsSchema } from "./tools/list_jobs.js";
 import { getJobLogs, getJobLogsSchema } from "./tools/get_job_logs.js";
+import { describeNode, describeNodeSchema } from "./tools/describe_node.js";
 import {
   installHelmChart,
   installHelmChartSchema,
@@ -51,7 +55,10 @@ import { KubernetesManager } from "./types.js";
 import { serverConfig } from "./config/server-config.js";
 import { createDeploymentSchema } from "./config/deployment-config.js";
 import { listNamespacesSchema } from "./config/namespace-config.js";
-import { deleteNamespace, deleteNamespaceSchema } from "./tools/delete_namespace.js";
+import {
+  deleteNamespace,
+  deleteNamespaceSchema,
+} from "./tools/delete_namespace.js";
 import { cleanupSchema } from "./config/cleanup-config.js";
 import { startSSEServer } from "./utils/sse.js";
 import {
@@ -60,22 +67,47 @@ import {
   stopPortForward,
   StopPortForwardSchema,
 } from "./tools/port_forward.js";
-import { deleteDeployment, deleteDeploymentSchema } from "./tools/delete_deployment.js";
+import {
+  deleteDeployment,
+  deleteDeploymentSchema,
+} from "./tools/delete_deployment.js";
 import { createDeployment } from "./tools/create_deployment.js";
-import { scaleDeployment, scaleDeploymentSchema } from "./tools/scale_deployment.js"
+import {
+  scaleDeployment,
+  scaleDeploymentSchema,
+} from "./tools/scale_deployment.js";
 import {
   describeDeployment,
   describeDeploymentSchema,
 } from "./tools/describe_deployment.js";
-import { updateDeployment, updateDeploymentSchema } from "./tools/update_deployment.js";
-import { createConfigMap, CreateConfigMapSchema } from "./tools/create_configmap.js";
-import { createService, createServiceSchema } from "./tools/create_service.js";
+import {
+  updateDeployment,
+  updateDeploymentSchema,
+} from "./tools/update_deployment.js";
+import {
+  createConfigMap,
+  CreateConfigMapSchema,
+} from "./tools/create_configmap.js";
 import { listContexts, listContextsSchema } from "./tools/list_contexts.js";
-import { getCurrentContext, getCurrentContextSchema } from "./tools/get_current_context.js";
-import { setCurrentContext, setCurrentContextSchema } from "./tools/set_current_context.js";
+import {
+  getCurrentContext,
+  getCurrentContextSchema,
+} from "./tools/get_current_context.js";
+import {
+  setCurrentContext,
+  setCurrentContextSchema,
+} from "./tools/set_current_context.js";
+import { createService, createServiceSchema } from "./tools/create_service.js";
+import {
+  describeService,
+  describeServiceSchema,
+} from "./tools/describe_service.js";
+import { updateService, updateServiceSchema } from "./tools/update_service.js";
+import { deleteService, deleteServiceSchema } from "./tools/delete_service.js";
 
 // Check if non-destructive tools only mode is enabled
-const nonDestructiveTools = process.env.ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS === 'true';
+const nonDestructiveTools =
+  process.env.ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS === "true";
 
 const k8sManager = new KubernetesManager();
 
@@ -90,6 +122,7 @@ const server = new Server(
 // Define destructive tools (delete and uninstall operations)
 const destructiveTools = [
   deletePodSchema,
+  deleteServiceSchema,
   deleteDeploymentSchema,
   deleteNamespaceSchema,
   uninstallHelmChartSchema,
@@ -110,9 +143,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     deletePodSchema,
     deleteDeploymentSchema,
     deleteNamespaceSchema,
+    deleteServiceSchema,
     describeCronJobSchema,
     describePodSchema,
+    describeNodeSchema,
     describeDeploymentSchema,
+    describeServiceSchema,
     explainResourceSchema,
     getEventsSchema,
     getJobLogsSchema,
@@ -137,11 +173,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     scaleDeploymentSchema,
     DeleteCronJobSchema,
     CreateConfigMapSchema,
+    updateServiceSchema,
   ];
 
   // Filter out destructive tools if ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS is set to 'true'
   const tools = nonDestructiveTools
-    ? allTools.filter(tool => !destructiveTools.some(dt => dt.name === tool.name))
+    ? allTools.filter(
+        (tool) => !destructiveTools.some((dt) => dt.name === tool.name)
+      )
     : allTools;
 
   return { tools };
@@ -215,7 +254,7 @@ server.setRequestHandler(
             k8sManager,
             input as {
               name: string;
-              namespace: string
+              namespace: string;
             }
           );
         }
@@ -232,6 +271,16 @@ server.setRequestHandler(
 
         case "describe_pod": {
           return await describePod(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+            }
+          );
+        }
+
+        case "describe_node": {
+          return await describeNode(
             k8sManager,
             input as {
               name: string;
@@ -365,10 +414,7 @@ server.setRequestHandler(
         }
 
         case "set_current_context": {
-          return await setCurrentContext(
-            k8sManager,
-            input as { name: string }
-          );
+          return await setCurrentContext(k8sManager, input as { name: string });
         }
 
         case "describe_cronjob": {
@@ -506,9 +552,9 @@ server.setRequestHandler(
           return await scaleDeployment(
             k8sManager,
             input as {
-              name: string,
-              namespace: string,
-              replicas: number
+              name: string;
+              namespace: string;
+              replicas: number;
             }
           );
         }
@@ -517,9 +563,9 @@ server.setRequestHandler(
           return await createConfigMap(
             k8sManager,
             input as {
-              name: string,
-              namespace: string,
-              data: Record<string, string>
+              name: string;
+              namespace: string;
+              data: Record<string, string>;
             }
           );
         }
@@ -539,6 +585,46 @@ server.setRequestHandler(
                 name?: string;
                 nodePort?: number;
               }>;
+            }
+          );
+        }
+
+        case "update_service": {
+          return await updateService(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+              type?: "ClusterIP" | "NodePort" | "LoadBalancer";
+              selector?: Record<string, string>;
+              ports?: Array<{
+                port: number;
+                targetPort?: number;
+                protocol?: string;
+                name?: string;
+                nodePort?: number;
+              }>;
+            }
+          );
+        }
+
+        case "delete_service": {
+          return await deleteService(
+            k8sManager,
+            input as {
+              name: string;
+              namespace?: string;
+              ignoreNotFound?: boolean;
+            }
+          );
+        }
+
+        case "describe_service": {
+          return await describeService(
+            k8sManager,
+            input as {
+              name: string;
+              namespace?: string;
             }
           );
         }
