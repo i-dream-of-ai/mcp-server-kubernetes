@@ -88,6 +88,9 @@ import {
   createConfigMap,
   CreateConfigMapSchema,
 } from "./tools/create_configmap.js";
+import { getConfigMap, GetConfigMapSchema } from "./tools/get_configmap.js";
+import { updateConfigMap, UpdateConfigMapSchema } from "./tools/update_configmap.js";
+import { deleteConfigMap, DeleteConfigMapSchema } from "./tools/delete_configmap.js";
 import { listContexts, listContextsSchema } from "./tools/list_contexts.js";
 import {
   getCurrentContext,
@@ -109,16 +112,6 @@ import { deleteService, deleteServiceSchema } from "./tools/delete_service.js";
 const nonDestructiveTools =
   process.env.ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS === "true";
 
-const k8sManager = new KubernetesManager();
-
-const server = new Server(
-  {
-    name: serverConfig.name,
-    version: serverConfig.version,
-  },
-  serverConfig
-);
-
 // Define destructive tools (delete and uninstall operations)
 const destructiveTools = [
   deletePodSchema,
@@ -130,51 +123,62 @@ const destructiveTools = [
   cleanupSchema, // Cleanup is also destructive as it deletes resources
 ];
 
+// Get all available tools
+const allTools = [
+  cleanupSchema,
+  createDeploymentSchema,
+  createNamespaceSchema,
+  createPodSchema,
+  createCronJobSchema,
+  createServiceSchema,
+  deletePodSchema,
+  deleteDeploymentSchema,
+  deleteNamespaceSchema,
+  deleteServiceSchema,
+  describeCronJobSchema,
+  describePodSchema,
+  describeNodeSchema,
+  describeDeploymentSchema,
+  describeServiceSchema,
+  explainResourceSchema,
+  getEventsSchema,
+  getJobLogsSchema,
+  getLogsSchema,
+  installHelmChartSchema,
+  listApiResourcesSchema,
+  listCronJobsSchema,
+  listContextsSchema,
+  getCurrentContextSchema,
+  setCurrentContextSchema,
+  listDeploymentsSchema,
+  listJobsSchema,
+  listNamespacesSchema,
+  listNodesSchema,
+  listPodsSchema,
+  listServicesSchema,
+  uninstallHelmChartSchema,
+  updateDeploymentSchema,
+  upgradeHelmChartSchema,
+  PortForwardSchema,
+  StopPortForwardSchema,
+  scaleDeploymentSchema,
+  DeleteCronJobSchema,
+  CreateConfigMapSchema,
+  updateServiceSchema,
+];
+
+const k8sManager = new KubernetesManager();
+
+const server = new Server(
+  {
+    name: serverConfig.name,
+    version: serverConfig.version,
+  },
+  serverConfig
+);
+
 // Tools handlers
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  // Get all available tools
-  const allTools = [
-    cleanupSchema,
-    createDeploymentSchema,
-    createNamespaceSchema,
-    createPodSchema,
-    createCronJobSchema,
-    createServiceSchema,
-    deletePodSchema,
-    deleteDeploymentSchema,
-    deleteNamespaceSchema,
-    deleteServiceSchema,
-    describeCronJobSchema,
-    describePodSchema,
-    describeNodeSchema,
-    describeDeploymentSchema,
-    describeServiceSchema,
-    explainResourceSchema,
-    getEventsSchema,
-    getJobLogsSchema,
-    getLogsSchema,
-    installHelmChartSchema,
-    listApiResourcesSchema,
-    listCronJobsSchema,
-    listContextsSchema,
-    getCurrentContextSchema,
-    setCurrentContextSchema,
-    listDeploymentsSchema,
-    listJobsSchema,
-    listNamespacesSchema,
-    listNodesSchema,
-    listPodsSchema,
-    listServicesSchema,
-    uninstallHelmChartSchema,
-    updateDeploymentSchema,
-    upgradeHelmChartSchema,
-    PortForwardSchema,
-    StopPortForwardSchema,
-    scaleDeploymentSchema,
-    DeleteCronJobSchema,
-    CreateConfigMapSchema,
-    updateServiceSchema,
-  ];
 
   // Filter out destructive tools if ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS is set to 'true'
   const tools = nonDestructiveTools
@@ -570,6 +574,37 @@ server.setRequestHandler(
           );
         }
 
+        case "get_configmap": {
+          return  await getConfigMap(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+            }
+          );
+        }
+
+        case "update_configmap": {
+          return await updateConfigMap(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+              data: Record<string, string>;
+            }
+          );
+        }
+
+        case "delete_configmap": {
+          return await deleteConfigMap(
+            k8sManager,
+            input as {
+              name: string;
+              namespace: string;
+            }
+          );
+        }
+
         case "create_service": {
           return await createService(
             k8sManager,
@@ -667,3 +702,5 @@ if (process.env.ENABLE_UNSAFE_SSE_TRANSPORT) {
     process.exit(0);
   });
 });
+
+export { allTools, destructiveTools };

@@ -66,12 +66,13 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 ## Features
 
 - [x] Connect to a Kubernetes cluster
-- [x] List all pods, services, deployments, nodes
-- [x] Describe nodes
+- [x] List all pods, services, deployments
+- [x] List, Describe nodes
 - [x] Create, describe, delete a pod
 - [x] List all namespaces, create a namespace
 - [x] Create custom pod & deployment configs, update deployment replicas
 - [x] Create, describe, delete, update a service
+- [x] Create, get, update, delete a ConfigMap
 - [x] Get logs from a pod for debugging (supports pods, deployments, jobs, and label selectors)
 - [x] Support Helm v3 for installing charts
   - Install charts with custom values
@@ -153,6 +154,8 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details.
 For more advanced information like using SSE transport, Non-destructive mode with `ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS`, see the [ADVANCED_README.md](ADVANCED_README.md).
 
 ## Architecture
+
+See this [DeepWiki link](https://deepwiki.com/Flux159/mcp-server-kubernetes) for a more indepth architecture overview created by Devin.
 
 This section describes the high-level architecture of the MCP Kubernetes server.
 
