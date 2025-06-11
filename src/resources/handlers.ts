@@ -1,5 +1,4 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import * as k8s from "@kubernetes/client-node";
 import { KubernetesManager } from "../types.js";
 
 export const getResourceHandlers = (k8sManager: KubernetesManager) => ({
