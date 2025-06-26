@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-kubernetes",
-  "version": "2.3.1",
+  "version": "2.4.1",
   "description": "MCP server for interacting with Kubernetes clusters via kubectl",
   "license": "MIT",
   "type": "module",
@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "build": "tsc && shx chmod +x dist/*.js",
+    "builddxt": "node_modules/.bin/dxt pack",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "test": "vitest run",
@@ -48,6 +49,7 @@
     "@types/node": "22.9.3",
     "shx": "0.3.4",
     "typescript": "5.6.2",
-    "vitest": "2.1.9"
+    "vitest": "2.1.9",
+    "@anthropic-ai/dxt": "0.1.0"
   }
 }
