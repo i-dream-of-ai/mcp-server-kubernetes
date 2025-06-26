@@ -1,8 +1,8 @@
 // Import required test frameworks and SDK components
-import { expect, test, describe, beforeEach, afterEach } from "vitest";
+import { expect, test, describe, beforeEach, afterEach, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { ListToolsResponseSchema } from "../src/models/tool-models.js";
+import { ListToolsResponseSchema, PingResponseSchema } from "../src/models/tool-models.js";
 import {
   ListPodsResponseSchema,
   ListNamespacesResponseSchema,
@@ -19,6 +19,7 @@ import { ScaleDeploymentResponseSchema } from "../src/models/response-schemas.js
 import { KubectlResponseSchema } from "../src/models/kubectl-models.js";
 import { z } from "zod";
 import { asResponseSchema } from "./context-helper";
+import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
 /**
  * Utility function to create a promise that resolves after specified milliseconds
@@ -57,9 +58,13 @@ describe("kubernetes server operations", () => {
     try {
       transport = new StdioClientTransport({
         command: "bun",
-        args: ["src/index.ts"],
+        args: ["run", "src/index.ts"],
         stderr: "pipe",
+        stdout: "pipe",
+        log: (...args) => console.log("SERVER LOG:", ...args),
+        error: (...args) => console.error("SERVER ERROR:", ...args),
       });
+      // console.log("StdioClientTransport initialized."); // Removed for debugging
 
       client = new Client(
         {
@@ -73,9 +78,9 @@ describe("kubernetes server operations", () => {
       await client.connect(transport);
       // Wait for connection to be fully established
       await sleep(1000);
-    } catch (e) {
-      console.error("Error in beforeEach:", e);
-      throw e;
+
+    } catch (error) {
+      console.error("Error in beforeEach:", error);
     }
   });
 
@@ -115,13 +120,13 @@ describe("kubernetes server operations", () => {
    * Tests both namespace and node listing operations in sequence
    */
   test("list namespaces and nodes", async () => {
-    // List namespaces using kubectl_list
+    // List namespaces using kubectl_get
     console.log("Listing namespaces...");
     const namespacesResult = await client.request(
       {
         method: "tools/call",
         params: {
-          name: "kubectl_list",
+          name: "kubectl_get",
           arguments: {
             resourceType: "namespaces",
             output: "json"
@@ -135,13 +140,13 @@ describe("kubernetes server operations", () => {
     expect(namespaces.items).toBeDefined();
     expect(Array.isArray(namespaces.items)).toBe(true);
 
-    // List nodes using kubectl_list
+    // List nodes using kubectl_get
     console.log("Listing nodes...");
     const listNodesResult = await client.request(
       {
         method: "tools/call",
         params: {
-          name: "kubectl_list",
+          name: "kubectl_get",
           arguments: {
             resourceType: "nodes",
             output: "json"
@@ -251,15 +256,15 @@ describe("kubernetes server operations", () => {
         {
           method: "tools/call",
           params: {
-            name: "kubectl_list",
+            name: "kubectl_get",
             arguments: {
               resourceType: "pods",
-              namespace: "default",
-              output: "json"
+              labelSelector: `test=${podBaseName}`,
+              output: "json",
             },
           },
         },
-        asResponseSchema(ListPodsResponseSchema)
+        asResponseSchema(KubectlResponseSchema)
       );
 
       const podsResponse = JSON.parse(existingPods.content[0].text);
@@ -863,5 +868,22 @@ describe("kubernetes server operations", () => {
         await sleep(waitTime);
       }
     }
+  });
+
+  /**
+   * Test case: Verify ping support
+   * Ensures that the server responds to ping requests.
+   */
+  test("ping support", async () => {
+    console.log("Pinging server...");
+    const pingResult = await client.request(
+      {
+        jsonrpc: "2.0",
+        id: "123", // Example ID
+        method: "ping",
+      },
+      asResponseSchema(PingResponseSchema)
+    );
+    expect(pingResult).toEqual({});
   });
 });

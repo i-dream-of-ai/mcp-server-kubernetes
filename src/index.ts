@@ -15,6 +15,7 @@ import {
   listApiResources,
   listApiResourcesSchema,
 } from "./tools/kubectl-operations.js";
+import { execInPod, execInPodSchema } from "./tools/exec_in_pod.js";
 import { getResourceHandlers } from "./resources/handlers.js";
 import {
   ListResourcesRequestSchema,
@@ -44,7 +45,6 @@ import {
   kubectlDescribe,
   kubectlDescribeSchema,
 } from "./tools/kubectl-describe.js";
-import { kubectlList, kubectlListSchema } from "./tools/kubectl-list.js";
 import { kubectlApply, kubectlApplySchema } from "./tools/kubectl-apply.js";
 import { kubectlDelete, kubectlDeleteSchema } from "./tools/kubectl-delete.js";
 import { kubectlCreate, kubectlCreateSchema } from "./tools/kubectl-create.js";
@@ -58,6 +58,8 @@ import {
   kubectlRollout,
   kubectlRolloutSchema,
 } from "./tools/kubectl-rollout.js";
+import { registerPromptHandlers } from "./prompts/index.js";
+import { ping, pingSchema } from "./tools/ping.js";
 
 // Check if non-destructive tools only mode is enabled
 const nonDestructiveTools =
@@ -79,7 +81,6 @@ const allTools = [
   // Unified kubectl-style tools - these replace many specific tools
   kubectlGetSchema,
   kubectlDescribeSchema,
-  kubectlListSchema,
   kubectlApplySchema,
   kubectlDeleteSchema,
   kubectlCreateSchema,
@@ -102,12 +103,16 @@ const allTools = [
   // Port forwarding
   PortForwardSchema,
   StopPortForwardSchema,
+  execInPodSchema,
+
 
   // API resource operations
   listApiResourcesSchema,
-
   // Generic kubectl command
   kubectlGenericSchema,
+
+  // Ping utility
+  pingSchema,
 ];
 
 const k8sManager = new KubernetesManager();
@@ -117,7 +122,13 @@ const server = new Server(
     name: serverConfig.name,
     version: serverConfig.version,
   },
-  serverConfig
+  {
+    ...serverConfig,
+    capabilities: {
+      prompts: {},
+      ...serverConfig.capabilities,
+    },
+  }
 );
 
 // Resources handlers
@@ -131,6 +142,9 @@ server.setRequestHandler(
   resourceHandlers.readResource
 );
 
+// Register prompt handlers
+registerPromptHandlers(server, k8sManager);
+
 // Tools handlers
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   // Filter out destructive tools if ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS is set to 'true'
@@ -139,7 +153,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         (tool) => !destructiveTools.some((dt) => dt.name === tool.name)
       )
     : allTools;
-
   return { tools };
 });
 
@@ -177,6 +190,7 @@ server.setRequestHandler(
             allNamespaces?: boolean;
             labelSelector?: string;
             fieldSelector?: string;
+            sortBy?: string;
           }
         );
       }
@@ -189,20 +203,6 @@ server.setRequestHandler(
             name: string;
             namespace?: string;
             allNamespaces?: boolean;
-          }
-        );
-      }
-
-      if (name === "kubectl_list") {
-        return await kubectlList(
-          k8sManager,
-          input as {
-            resourceType: string;
-            namespace?: string;
-            output?: string;
-            allNamespaces?: boolean;
-            labelSelector?: string;
-            fieldSelector?: string;
           }
         );
       }
@@ -437,6 +437,22 @@ server.setRequestHandler(
               namespace?: string;
               replicas: number;
               resourceType?: string;
+            }
+          );
+        }
+
+        case "ping": {
+          return await ping();
+        }
+
+        case "exec_in_pod": {
+          return await execInPod(
+            k8sManager,
+            input as {
+              name: string;
+              namespace?: string;
+              command: string | string[];
+              container?: string;
             }
           );
         }

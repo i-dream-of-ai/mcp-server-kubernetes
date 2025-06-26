@@ -17,7 +17,6 @@ https://github.com/user-attachments/assets/f25f8f4e-4d04-479b-9ae0-5dac452dd2ed
 
 <a href="https://glama.ai/mcp/servers/w71ieamqrt"><img width="380" height="200" src="https://glama.ai/mcp/servers/w71ieamqrt/badge" /></a>
 
-
 ## Usage with Claude Desktop
 
 ```json
@@ -72,7 +71,7 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
 - [x] Unified kubectl API for managing resources
   - Get or list resources with `kubectl_get`
   - Describe resources with `kubectl_describe`
-  - List resources with `kubectl_list`
+  - List resources with `kubectl_get`
   - Create resources with `kubectl_create`
   - Apply YAML manifests with `kubectl_apply`
   - Delete resources with `kubectl_delete`
@@ -84,13 +83,25 @@ npx mcp-chat --config "%APPDATA%\Claude\claude_desktop_config.json"
   - Update field(s) of a resource with `kubectl_patch`
   - Manage deployment rollouts with `kubectl_rollout`
   - Execute any kubectl command with `kubectl_generic`
+  - Verify connection with `ping`
 - [x] Advanced operations
   - Scale deployments with `kubectl_scale` (replaces legacy `scale_deployment`)
   - Port forward to pods and services with `port_forward`
   - Run Helm operations
     - Install, upgrade, and uninstall charts
     - Support for custom values, repositories, and versions
+- [x] Troubleshooting Prompt (`k8s-diagnose`)
+  - Guides through a systematic Kubernetes troubleshooting flow for pods based on a keyword and optional namespace.
 - [x] Non-destructive mode for read and create/update-only access to clusters
+
+## Prompts
+
+The MCP Kubernetes server includes specialized prompts to assist with common diagnostic operations.
+
+### k8s-diagnose Prompt
+
+This prompt provides a systematic troubleshooting flow for Kubernetes pods. It accepts a `keyword` to identify relevant pods and an optional `namespace` to narrow the search.
+The prompt's output will guide you through an autonomous troubleshooting flow, providing instructions for identifying issues, collecting evidence, and suggesting remediation steps.
 
 ## Local Development
 
@@ -182,7 +193,7 @@ For Claude Desktop configuration with non-destructive mode:
 
 All read-only and resource creation/update operations remain available:
 
-- Resource Information: `kubectl_get`, `kubectl_describe`, `kubectl_list`, `kubectl_logs`, `explain_resource`, `list_api_resources`
+- Resource Information: `kubectl_get`, `kubectl_describe`, `kubectl_logs`, `explain_resource`, `list_api_resources`
 - Resource Creation/Modification: `kubectl_apply`, `kubectl_create`, `kubectl_scale`, `kubectl_patch`, `kubectl_rollout`
 - Helm Operations: `install_helm_chart`, `upgrade_helm_chart`
 - Connectivity: `port_forward`, `stop_port_forward`
