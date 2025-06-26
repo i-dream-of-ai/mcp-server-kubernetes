@@ -22,6 +22,22 @@
       "description": "Use kubectl get to retrieve information from cluster"
     }
   ],
+  "user_config": {
+    "allowed_directories": {
+      "type": "directory",
+      "title": "Allow access to .kube directory",
+      "description": ".kube directory access for mcp server kubernetes",
+      "required": true,
+      "default": ["${HOME}/.kube"]
+    },
+    "kubeconfig_path": {
+      "type": "string",
+      "title": "Kubeconfig env",
+      "description": "KUBECONFIG env var passed to server",
+      "sensitive": false,
+      "required": false
+    }
+  },
   "tools_generated": true,
   "keywords": ["kubernetes", "docker", "containers", "containerization"],
   "license": "MIT",
