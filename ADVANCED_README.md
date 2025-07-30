@@ -267,7 +267,27 @@ For Claude Desktop configuration to disable secrets masking:
 
 When enabled (default), `kubectl get secrets` and `kubectl get secret` commands will automatically mask all values in the `data` section with `***` while preserving the structure and metadata. Note that this only applies to the `kubectl get secrets` command output and does not mask secrets that may appear in logs or other operations.
 
-### SSE Transport
+### Streamable HTTP Transport
+
+To enable [Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http) for mcp-server-kubernetes, use the ENABLE_UNSAFE_STREAMABLE_HTTP_TRANSPORT environment variable.
+
+```shell
+ENABLE_UNSAFE_STREAMABLE_HTTP_TRANSPORT=1 npx flux159/mcp-server-kubernetes
+```
+
+This will start an http server with the `/mcp` endpoint for streamable http events (POST). Use the `PORT` env var to configure the server port. Use the `HOST` env var to configure listening on interfaces other than localhost.
+
+```shell
+ENABLE_UNSAFE_STREAMABLE_HTTP_TRANSPORT=1 PORT=3001 HOST=0.0.0.0 npx flux159/mcp-server-kubernetes
+```
+
+Here's an example of how to use the streamable http transport via curl (default port of 3000). Note that mcp clients that support streamable http transport should handle this for you:
+
+```shell
+curl -i -X POST -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc": "2.0", "method": "tools/list", "params": {}, "id": 2}' http://localhost:3000/mcp
+```
+
+### SSE Transport (Deprecated in favor of Streamable HTTP)
 
 To enable [SSE transport](https://modelcontextprotocol.io/docs/concepts/transports#server-sent-events-sse) for mcp-server-kubernetes, use the ENABLE_UNSAFE_SSE_TRANSPORT environment variable.
 
