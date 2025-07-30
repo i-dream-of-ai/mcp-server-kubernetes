@@ -267,7 +267,21 @@ For Claude Desktop configuration to disable secrets masking:
 
 When enabled (default), `kubectl get secrets` and `kubectl get secret` commands will automatically mask all values in the `data` section with `***` while preserving the structure and metadata. Note that this only applies to the `kubectl get secrets` command output and does not mask secrets that may appear in logs or other operations.
 
-### SSE Transport
+### Streamable HTTP Transport
+
+To enable [Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http) for mcp-server-kubernetes, use the ENABLE_UNSAFE_STREAMABLE_HTTP_TRANSPORT environment variable.
+
+```shell
+ENABLE_UNSAFE_STREAMABLE_HTTP_TRANSPORT=1 npx flux159/mcp-server-kubernetes
+```
+
+This will start an http server with the `/mcp` endpoint for streamable http events (POST, GET, and DELETE). Use the `PORT` env var to configure the server port. Use the `HOST` env var to configure listening on interfaces other than localhost.
+
+```shell
+ENABLE_UNSAFE_STREAMABLE_HTTP_TRANSPORT=1 PORT=3001 HOST=0.0.0.0 npx flux159/mcp-server-kubernetes
+```
+
+### SSE Transport (Deprecated in favor of Streamable HTTP)
 
 To enable [SSE transport](https://modelcontextprotocol.io/docs/concepts/transports#server-sent-events-sse) for mcp-server-kubernetes, use the ENABLE_UNSAFE_SSE_TRANSPORT environment variable.
 
